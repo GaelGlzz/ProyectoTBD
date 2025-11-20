@@ -1,0 +1,71 @@
+CREATE DATABASE IF NOT EXISTS aerocontrol;
+USE aerocontrol;
+
+CREATE TABLE IF NOT EXISTS usuarios (
+    id_usuario INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100),
+    usuario VARCHAR(50) UNIQUE,
+    password VARCHAR(255),
+    rol VARCHAR(50)
+);
+
+INSERT INTO usuarios (nombre, usuario, password, rol) VALUES 
+('Admin', 'admin', 'admin123', 'Gerente');
+
+CREATE TABLE IF NOT EXISTS aeropuerto (
+    id_aeropuerto INT AUTO_INCREMENT PRIMARY KEY,
+    pais VARCHAR(100),
+    estado VARCHAR(100),
+    ciudad VARCHAR(100)
+);
+
+CREATE TABLE IF NOT EXISTS vuelo (
+    id_vuelo INT AUTO_INCREMENT PRIMARY KEY,
+    hora_salida DATETIME,
+    hora_llegada DATETIME,
+    id_aeropuerto_origen INT,
+    id_aeropuerto_destino INT,
+    estado VARCHAR(50),
+    FOREIGN KEY (id_aeropuerto_origen) REFERENCES aeropuerto(id_aeropuerto),
+    FOREIGN KEY (id_aeropuerto_destino) REFERENCES aeropuerto(id_aeropuerto)
+);
+
+CREATE TABLE IF NOT EXISTS avion (
+    id_avion INT AUTO_INCREMENT PRIMARY KEY,
+    id_vuelo INT,
+    modelo VARCHAR(100),
+    capacidad_pasajeros INT,
+    aerolinea VARCHAR(100),
+    FOREIGN KEY (id_vuelo) REFERENCES vuelo(id_vuelo)
+);
+
+CREATE TABLE IF NOT EXISTS pasajero (
+    id_pasajero INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100),
+    apellido VARCHAR(100),
+    correo VARCHAR(100),
+    telefono VARCHAR(20)
+);
+
+CREATE TABLE IF NOT EXISTS boleto (
+    id_boleto INT AUTO_INCREMENT PRIMARY KEY,
+    id_pasajero INT,
+    id_vuelo INT,
+    precio DECIMAL(10, 2),
+    terminal VARCHAR(50),
+    asiento VARCHAR(10),
+    estado VARCHAR(20) DEFAULT 'Emitido',
+    FOREIGN KEY (id_pasajero) REFERENCES pasajero(id_pasajero),
+    FOREIGN KEY (id_vuelo) REFERENCES vuelo(id_vuelo)
+);
+
+-- Optional: Keep equipaje for completeness if needed, but prompt emphasized 5 main tables.
+-- I will include it as it was in the previous requirement and adds value.
+CREATE TABLE IF NOT EXISTS equipaje (
+    id_equipaje INT AUTO_INCREMENT PRIMARY KEY,
+    id_pasajero INT,
+    peso DECIMAL(10, 2),
+    tipo VARCHAR(50),
+    estado VARCHAR(50),
+    FOREIGN KEY (id_pasajero) REFERENCES pasajero(id_pasajero)
+);
