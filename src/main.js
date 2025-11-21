@@ -84,7 +84,7 @@ ipcMain.handle('getVuelos', async () => {
       FROM vuelo v
       LEFT JOIN aeropuerto ao ON v.id_aeropuerto_origen = ao.id_aeropuerto
       LEFT JOIN aeropuerto ad ON v.id_aeropuerto_destino = ad.id_aeropuerto
-      LEFT JOIN avion a ON a.id_vuelo = v.id_vuelo
+      LEFT JOIN avion a ON a.id_avion = v.id_avion
       ORDER BY v.hora_salida DESC
     `;
     db.query(sql, (error, results) => {
@@ -173,6 +173,15 @@ ipcMain.handle('registrarVuelo', async (event, data) => {
     db.query('INSERT INTO vuelo SET ?', data, (err, res) => {
       if (err) reject(err);
       else resolve({ id: res.insertId, message: 'Vuelo registrado' });
+    });
+  });
+});
+
+ipcMain.handle('modificarVuelo', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    db.query('UPDATE vuelo SET hora_salida = ?, hora_llegada = ?, estado = ? WHERE id_vuelo = ?', [data.hora_salida,data.hora_llegada,data.estado,data.id_vuelo], (err, res) => {
+      if (err) reject(err);
+      else resolve({message: 'Vuelo modificado' });
     });
   });
 });

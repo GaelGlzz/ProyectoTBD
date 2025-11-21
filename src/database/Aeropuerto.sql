@@ -14,6 +14,7 @@ INSERT INTO usuarios (nombre, usuario, password, rol) VALUES
 
 CREATE TABLE IF NOT EXISTS aeropuerto (
     id_aeropuerto INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100),
     pais VARCHAR(100),
     estado VARCHAR(100),
     ciudad VARCHAR(100)
@@ -25,9 +26,11 @@ CREATE TABLE IF NOT EXISTS vuelo (
     hora_llegada DATETIME,
     id_aeropuerto_origen INT,
     id_aeropuerto_destino INT,
+    id_avion INT,
     estado VARCHAR(50),
     FOREIGN KEY (id_aeropuerto_origen) REFERENCES aeropuerto(id_aeropuerto),
-    FOREIGN KEY (id_aeropuerto_destino) REFERENCES aeropuerto(id_aeropuerto)
+    FOREIGN KEY (id_aeropuerto_destino) REFERENCES aeropuerto(id_aeropuerto),
+    FOREIGN KEY (id_avion) REFERENCES avion(id_avion)
 );
 
 CREATE TABLE IF NOT EXISTS avion (
@@ -69,3 +72,12 @@ CREATE TABLE IF NOT EXISTS equipaje (
     estado VARCHAR(50),
     FOREIGN KEY (id_pasajero) REFERENCES pasajero(id_pasajero)
 );
+
+/*------------------------------------------------VISTAS------------------------------------------------------*/
+CREATE VIEW datos_Pasajeros IF NOT EXISTS AS
+SELECT nombre, apellido, correo 
+FROM pasajero;
+
+CREATE VIEW vuelos_a_abordar IF NOT EXISTS AS
+SELECT hora_salida,vuelo.id_avion,aeropuerto.nombre,estado
+FROM vuelo INNER JOIN aeropuerto ON vuelo.id_aeropuerto = aeropuerto.id_aeropuerto

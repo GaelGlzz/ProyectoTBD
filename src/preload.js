@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld('api', {
   // Actions
   registrarPasajero: (data) => ipcRenderer.invoke('registrarPasajero', data),
   registrarVuelo: (data) => ipcRenderer.invoke('registrarVuelo', data),
+  modificarVuelo: (data) => ipcRenderer.invoke('modificarVuelo', data),
   registrarAeropuerto: (data) => ipcRenderer.invoke('registrarAeropuerto', data),
   registrarAvion: (data) => ipcRenderer.invoke('registrarAvion', data),
   emitirBoleto: (data) => ipcRenderer.invoke('emitirBoleto', data),

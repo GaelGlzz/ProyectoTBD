@@ -104,10 +104,10 @@ async function renderPage(page) {
       let rows = vuelos.map(v => `
         <tr>
           <td>${v.id_vuelo}</td>
+          <td>${v.id_avion}</td>
           <td>${v.origen_ciudad} -> ${v.destino_ciudad}</td>
           <td>${new Date(v.hora_salida).toLocaleString()}</td>
           <td>${v.estado}</td>
-          <td>${v.avion_modelo || 'Sin Asignar'}</td>
         </tr>
       `).join('');
 
@@ -115,10 +115,11 @@ async function renderPage(page) {
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3>Control de Vuelos</h3>
             <button class="btn btn-success" onclick="showRegistrarVuelo()">+ Nuevo Vuelo</button>
+            <button class="btn btn-warning" onclick="showModificarVuelo()">! Modificar Vuelo</button>
         </div> <br>
         <table class="table">
           <thead>
-            <tr><th>ID</th><th>Ruta</th><th>Salida</th><th>Estado</th><th>Avión</th></tr>
+            <tr><th>ID</th><th>Avion</th><th>Ruta</th><th>Salida</th><th>Estado</th></tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
@@ -203,6 +204,7 @@ async function renderPage(page) {
       let rows = aeropuertos.map(a => `
         <tr>
           <td>${a.id_aeropuerto}</td>
+          <td>${a.nombre}</td>
           <td>${a.pais}</td>
           <td>${a.ciudad}</td>
         </tr>
@@ -215,7 +217,7 @@ async function renderPage(page) {
         </div> <br>
         <table class="table">
           <thead>
-            <tr><th>ID</th><th>País</th><th>Ciudad</th></tr>
+            <tr><th>ID</th><th>Nombre</th><th>País</th><th>Ciudad</th></tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
@@ -228,6 +230,7 @@ async function renderPage(page) {
 }
 
 // ================= HELPERS =================
+// ================= PASAJEROS =================
 window.showRegistrarPasajero = () => {
   const html = `
         <div class="form-group"><label>Nombre</label><input id="p-nombre" class="form-control"></div>
@@ -262,13 +265,17 @@ window.submitPasajero = async () => {
   renderPage('pasajeros');
 };
 
+// ================= VUELOS =================
 window.showRegistrarVuelo = async () => {
   const aeropuertos = await window.api.getAeropuertos();
+  const aviones = await window.api.getAviones();
   const options = aeropuertos.map(a => `<option value="${a.id_aeropuerto}">${a.ciudad} (${a.pais})</option>`).join('');
+  const options2 = aviones.map(av => `<option value="${av.id_avion}">${av.id_avion} (${av.aerolinea})</option>`).join('');
 
   const html = `
         <div class="form-group"><label>Salida</label><input type="datetime-local" id="v-salida" class="form-control"></div>
         <div class="form-group"><label>Llegada</label><input type="datetime-local" id="v-llegada" class="form-control"></div>
+        <div class="form-group"><label>Avion</label><select id="v-avion" class="form-control">${options2}</select></div>
         <div class="form-group"><label>Origen</label><select id="v-origen" class="form-control">${options}</select></div>
         <div class="form-group"><label>Destino</label><select id="v-destino" class="form-control">${options}</select></div>
         <div class="form-group"><label>Estado</label><select id="v-estado" class="form-control">
@@ -281,6 +288,7 @@ window.showRegistrarVuelo = async () => {
 
 window.submitVuelo = async () => {
   const data = {
+    id_avion: document.getElementById('v-avion').value,
     hora_salida: document.getElementById('v-salida').value,
     hora_llegada: document.getElementById('v-llegada').value,
     id_aeropuerto_origen: document.getElementById('v-origen').value,
@@ -308,6 +316,51 @@ window.submitVuelo = async () => {
   renderPage('vuelos');
 };
 
+window.showModificarVuelo = async()=>{
+  const vuelos = await window.api.getVuelos();
+  const options = vuelos.map(v => `<option value="${v.id_vuelo}">${v.id_aeropuerto_origen} (${v.estado})</option>`).join('');
+
+  const html = `
+        <div class="form-group"><label>Vuelo</label><select id="v-vuelo" class="form-control">${options}</select></div>
+        <div class="form-group"><label>Salida</label><input type="datetime-local" id="v-salida" class="form-control"></div>
+        <div class="form-group"><label>Llegada</label><input type="datetime-local" id="v-llegada" class="form-control"></div>
+        <div class="form-group"><label>Estado</label><select id="v-estado" class="form-control">
+            <option>Programado</option><option>En Curso</option><option>Aterrizado</option><option>Cancelado</option>
+        </select></div>
+        <button class="btn btn-primary mt-2" onclick="modificarVuelo()">Modificar</button>
+    `;
+  showModal('Modificar Vuelo', html);
+};
+
+window.modificarVuelo = async () => {
+  const data = {
+    hora_salida: document.getElementById('v-salida').value,
+    hora_llegada: document.getElementById('v-llegada').value,
+    estado: document.getElementById('v-estado').value,
+    id_vuelo : document.getElementById('v-vuelo').value
+  };
+
+  if (!data.hora_salida || !data.hora_llegada) {
+    customAlert('Por favor, complete las fechas de salida y llegada');
+    return;
+  }
+
+  if (!data.id_vuelo) {
+    customAlert('Elige un Vuelo');
+    return;
+  }
+
+  if (new Date(data.hora_salida) >= new Date(data.hora_llegada)) {
+    customAlert('La hora de llegada debe ser posterior a la hora de salida');
+    return;
+  }
+
+  await window.api.modificarVuelo(data);
+  closeModal();
+  renderPage('vuelos');
+};
+
+// ================= BOLETOS =================
 window.showEmitirBoleto = async () => {
   const pasajeros = await window.api.getPasajeros();
   const vuelos = await window.api.getVuelos();
@@ -368,6 +421,7 @@ window.verHistorial = async (id) => {
   showModal('Historial de Vuelo', html);
 };
 
+// ================= AVIONES =================
 window.showRegistrarAvion = () => {
   const html = `
         <div class="form-group"><label>Modelo</label><input id="a-modelo" class="form-control"></div>
@@ -402,6 +456,7 @@ window.submitAvion = async () => {
 
 window.showRegistrarAeropuerto = () => {
   const html = `
+        <div class="form-group"><label>Nombre</label><input id="ae-nombre" class="form-control"></div>
         <div class="form-group"><label>País</label><input id="ae-pais" class="form-control"></div>
         <div class="form-group"><label>Estado</label><input id="ae-estado" class="form-control"></div>
         <div class="form-group"><label>Ciudad</label><input id="ae-ciudad" class="form-control"></div>
@@ -412,12 +467,13 @@ window.showRegistrarAeropuerto = () => {
 
 window.submitAeropuerto = async () => {
   const data = {
+    nombre : document.getElementById('ae-nombre').value.trim(),
     pais: document.getElementById('ae-pais').value.trim(),
     estado: document.getElementById('ae-estado').value.trim(),
     ciudad: document.getElementById('ae-ciudad').value.trim()
   };
 
-  if (!data.pais || !data.estado || !data.ciudad) {
+  if (!data.nombre || !data.pais || !data.estado || !data.ciudad) {
     customAlert('Por favor, complete todos los campos');
     return;
   }
