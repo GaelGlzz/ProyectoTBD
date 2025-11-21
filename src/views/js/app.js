@@ -1,3 +1,4 @@
+import { customAlert, customConfirm } from './modalAlerts.js'; 
 let usuarioActual = null;
 const appContainer = document.getElementById('app-container');
 
@@ -52,12 +53,12 @@ async function renderLogin() {
 // =============== DASHBOARD ==================
 function renderDashboard() {
   const navbar = `
-      <a href="#" class="nav-link" data-page="vuelos">Control de Vuelos</a>
-      <a href="#" class="nav-link" data-page="pasajeros">Gestión de Pasajeros</a>
-      <a href="#" class="nav-link" data-page="boletos">Manejo de Boletos</a>
-      <a href="#" class="nav-link" data-page="aviones">Gestión de Aviones</a>
-      <a href="#" class="nav-link" data-page="aeropuertos">Admin. Aeropuertos</a>
-      <a href="#" class="nav-link" id="logout-btn" style="color:red;">Cerrar Sesión</a>
+      <a href="#" class="nav-link" data-page="vuelos">Control de Vuelos</a> <br>
+      <a href="#" class="nav-link" data-page="pasajeros">Gestión de Pasajeros</a> <br>
+      <a href="#" class="nav-link" data-page="boletos">Manejo de Boletos</a> <br>
+      <a href="#" class="nav-link" data-page="aviones">Gestión de Aviones</a> <br>
+      <a href="#" class="nav-link" data-page="aeropuertos">Admin. Aeropuertos</a> <br>
+      <a href="#" class="nav-link" id="logout-btn" style="color:red;">Cerrar Sesión</a> <br>
   `;
 
   appContainer.innerHTML = `
@@ -114,7 +115,7 @@ async function renderPage(page) {
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3>Control de Vuelos</h3>
             <button class="btn btn-success" onclick="showRegistrarVuelo()">+ Nuevo Vuelo</button>
-        </div>
+        </div> <br>
         <table class="table">
           <thead>
             <tr><th>ID</th><th>Ruta</th><th>Salida</th><th>Estado</th><th>Avión</th></tr>
@@ -139,7 +140,7 @@ async function renderPage(page) {
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3>Gestión de Pasajeros</h3>
             <button class="btn btn-success" onclick="showRegistrarPasajero()">+ Nuevo Pasajero</button>
-        </div>
+        </div> <br>
         <table class="table">
           <thead>
             <tr><th>ID</th><th>Nombre</th><th>Correo</th><th>Acciones</th></tr>
@@ -166,7 +167,7 @@ async function renderPage(page) {
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3>Manejo de Boletos</h3>
             <button class="btn btn-success" onclick="showEmitirBoleto()">+ Emitir Boleto</button>
-        </div>
+        </div> <br>
         <table class="table">
           <thead>
             <tr><th>ID</th><th>Pasajero</th><th>Vuelo</th><th>Asiento</th><th>Terminal</th><th>Acciones</th></tr>
@@ -189,7 +190,7 @@ async function renderPage(page) {
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3>Gestión de Aviones</h3>
             <button class="btn btn-success" onclick="showRegistrarAvion()">+ Nuevo Avión</button>
-        </div>
+        </div> <br>
         <table class="table">
           <thead>
             <tr><th>ID</th><th>Modelo</th><th>Aerolínea</th><th>Capacidad</th></tr>
@@ -211,7 +212,7 @@ async function renderPage(page) {
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3>Administración de Aeropuertos</h3>
             <button class="btn btn-success" onclick="showRegistrarAeropuerto()">+ Nuevo Aeropuerto</button>
-        </div>
+        </div> <br>
         <table class="table">
           <thead>
             <tr><th>ID</th><th>País</th><th>Ciudad</th></tr>
@@ -247,12 +248,12 @@ window.submitPasajero = async () => {
   };
 
   if (!data.nombre || !data.apellido || !data.correo || !data.telefono) {
-    alert('Por favor, complete todos los campos');
+    customAlert('Por favor, complete todos los campos');
     return;
   }
 
   if (!data.correo.includes('@')) {
-    alert('Por favor, ingrese un correo válido');
+    customAlert('Por favor, ingrese un correo válido');
     return;
   }
 
@@ -288,17 +289,17 @@ window.submitVuelo = async () => {
   };
 
   if (!data.hora_salida || !data.hora_llegada) {
-    alert('Por favor, complete las fechas de salida y llegada');
+    customAlert('Por favor, complete las fechas de salida y llegada');
     return;
   }
 
   if (data.id_aeropuerto_origen === data.id_aeropuerto_destino) {
-    alert('El aeropuerto de origen y destino deben ser diferentes');
+    customAlert('El aeropuerto de origen y destino deben ser diferentes');
     return;
   }
 
   if (new Date(data.hora_salida) >= new Date(data.hora_llegada)) {
-    alert('La hora de llegada debe ser posterior a la hora de salida');
+    customAlert('La hora de llegada debe ser posterior a la hora de salida');
     return;
   }
 
@@ -335,12 +336,12 @@ window.submitBoleto = async () => {
   };
 
   if (!data.id_pasajero || !data.id_vuelo || !data.precio || !data.terminal || !data.asiento) {
-    alert('Por favor, complete todos los campos');
+    customAlert('Por favor, complete todos los campos');
     return;
   }
 
   if (parseFloat(data.precio) <= 0) {
-    alert('El precio debe ser mayor a 0');
+    customAlert('El precio debe ser mayor a 0');
     return;
   }
 
@@ -352,7 +353,7 @@ window.submitBoleto = async () => {
 window.realizarCheckIn = async (id) => {
   if (confirm('¿Confirmar Check-in para este boleto?')) {
     await window.api.realizarCheckIn(id);
-    alert('Check-in realizado correctamente');
+    customAlert('Check-in realizado correctamente');
     renderPage('boletos');
   }
 };
@@ -385,12 +386,12 @@ window.submitAvion = async () => {
   };
 
   if (!data.modelo || !data.aerolinea || !data.capacidad_pasajeros) {
-    alert('Por favor, complete todos los campos');
+    customAlert('Por favor, complete todos los campos');
     return;
   }
 
   if (parseInt(data.capacidad_pasajeros) <= 0) {
-    alert('La capacidad debe ser mayor a 0');
+    customAlert('La capacidad debe ser mayor a 0');
     return;
   }
 
@@ -417,7 +418,7 @@ window.submitAeropuerto = async () => {
   };
 
   if (!data.pais || !data.estado || !data.ciudad) {
-    alert('Por favor, complete todos los campos');
+    customAlert('Por favor, complete todos los campos');
     return;
   }
 
@@ -447,6 +448,7 @@ window.closeModal = () => {
   const modal = document.getElementById('genericModal');
   if (modal) modal.remove();
 };
+
 
 // Iniciar
 renderLogin();
