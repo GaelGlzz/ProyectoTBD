@@ -20,6 +20,14 @@ CREATE TABLE IF NOT EXISTS aeropuerto (
     ciudad VARCHAR(100)
 );
 
+CREATE TABLE IF NOT EXISTS avion (
+    id_avion INT AUTO_INCREMENT PRIMARY KEY,
+    modelo VARCHAR(100),
+    capacidad_pasajeros INT,
+    aerolinea VARCHAR(100),
+    pesoCargaMaximo BIGINT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS vuelo (
     id_vuelo INT AUTO_INCREMENT PRIMARY KEY,
     hora_salida DATETIME,
@@ -31,14 +39,6 @@ CREATE TABLE IF NOT EXISTS vuelo (
     FOREIGN KEY (id_aeropuerto_origen) REFERENCES aeropuerto(id_aeropuerto),
     FOREIGN KEY (id_aeropuerto_destino) REFERENCES aeropuerto(id_aeropuerto),
     FOREIGN KEY (id_avion) REFERENCES avion(id_avion)
-);
-
-CREATE TABLE IF NOT EXISTS avion (
-    id_avion INT AUTO_INCREMENT PRIMARY KEY,
-    modelo VARCHAR(100),
-    capacidad_pasajeros INT,
-    aerolinea VARCHAR(100),
-    pesoCargaMaximo BIGINT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS pasajero (
