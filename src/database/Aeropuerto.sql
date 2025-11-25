@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS pasajero (
 CREATE TABLE IF NOT EXISTS boleto (
     id_boleto INT AUTO_INCREMENT PRIMARY KEY,
     id_pasajero INT,
-    tipoPasajero VARCHAR(30) NOT NULL
+    tipoPasajero VARCHAR(30) NOT NULL,
     id_vuelo INT,
     precio DECIMAL(10, 2),
     terminal VARCHAR(50),
@@ -76,12 +76,12 @@ CREATE TABLE IF NOT EXISTS equipaje (
 );
 
 /*------------------------------------------------VISTAS------------------------------------------------------*/
-CREATE VIEW datos_Pasajeros IF NOT EXISTS AS
+CREATE VIEW datos_Pasajeros AS
 SELECT nombre, apellido, correo 
 FROM pasajero;
 
-CREATE VIEW vuelos_a_abordar IF NOT EXISTS AS
-SELECT hora_salida,vuelo.id_avion,aeropuerto.nombre,estado
-FROM vuelo INNER JOIN aeropuerto ON vuelo.id_aeropuerto = aeropuerto.id_aeropuerto
+CREATE VIEW vuelos_a_abordar AS
+SELECT hora_salida,vuelo.id_avion,aeropuerto.nombre,vuelo.estado
+FROM vuelo INNER JOIN aeropuerto ON vuelo.id_aeropuerto_origen = aeropuerto.id_aeropuerto
 
 /*------------------------------------------------DISPARADORES------------------------------------------------------*/
