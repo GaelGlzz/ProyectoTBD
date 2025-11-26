@@ -105,12 +105,14 @@ BEGIN
     -- 2. Calcular la suma del peso de todo el equipaje del pasajero
     SELECT COALESCE(SUM(peso), 0) INTO total_peso_equipaje
     FROM equipaje
-    WHERE id_pasajero = NEW.id_pasajero;
+    WHERE id_pasajero = NEW.id_pasajero
+     AND estado IN ('Abordo');
 
     -- 3. Actualizar la CargaActual del avión
     UPDATE avion
     SET CargaActual = CargaActual + total_peso_equipaje
     WHERE id_avion = avion_id;
+       
 END//
 DELIMITER ;
 SET SQL_MODE=@OLDTMP_SQL_MODE;
