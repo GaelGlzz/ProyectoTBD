@@ -114,12 +114,7 @@ ipcMain.handle('getAviones', async () => {
 
 ipcMain.handle('getEquipaje', async () => {
   return new Promise((resolve, reject) => {
-    const sql = `
-      SELECT e.*, p.nombre, p.apellido
-      FROM equipaje e
-      JOIN pasajero p ON e.id_pasajero = p.id_pasajero
-      ORDER BY e.id_equipaje DESC
-    `;
+    const sql = `SELECT * FROM equipaje ORDER BY id_pasajero`;
     db.query(sql, (error, results) => {
       if (error) reject(error);
       else resolve(results);
@@ -200,6 +195,15 @@ ipcMain.handle('registrarAvion', async (event, data) => {
     db.query('INSERT INTO avion SET ?', data, (err, res) => {
       if (err) reject(err);
       else resolve({ id: res.insertId, message: 'Avión registrado' });
+    });
+  });
+});
+
+ipcMain.handle('registrarEquipaje', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    db.query('INSERT INTO equipaje SET ?', data, (err, res) => {
+      if (err) reject(err);
+      else resolve({ id: res.insertId, message: 'Equipaje registrado' });
     });
   });
 });

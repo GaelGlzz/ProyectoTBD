@@ -55,6 +55,7 @@ function renderDashboard() {
   const navbar = `
       <a href="#" class="nav-link" data-page="vuelos">Control de Vuelos</a> <br>
       <a href="#" class="nav-link" data-page="pasajeros">Gestión de Pasajeros</a> <br>
+      <a href="#" class="nav-link" data-page="equipaje">Gestión de Equipaje</a> <br>
       <a href="#" class="nav-link" data-page="boletos">Manejo de Boletos</a> <br>
       <a href="#" class="nav-link" data-page="aviones">Gestión de Aviones</a> <br>
       <a href="#" class="nav-link" data-page="aeropuertos">Admin. Aeropuertos</a> <br>
@@ -130,6 +131,8 @@ async function renderPage(page) {
         <tr>
           <td>${p.id_pasajero}</td>
           <td>${p.nombre} ${p.apellido}</td>
+          <td>${p.edad} años</td>
+          <td>${p.nacionalidad}</td>
           <td>${p.correo}</td>
           <td>
             <button class="btn btn-sm btn-info" onclick="verHistorial(${p.id_pasajero})">Historial</button>
@@ -144,7 +147,7 @@ async function renderPage(page) {
         </div> <br>
         <table class="table">
           <thead>
-            <tr><th>ID</th><th>Nombre</th><th>Correo</th><th>Acciones</th></tr>
+            <tr><th>ID</th><th>Nombre</th><th>Edad</th><th>Nacionalidad</th><th>Correo</th><th>Acciones</th></tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
@@ -184,6 +187,7 @@ async function renderPage(page) {
           <td>${a.modelo}</td>
           <td>${a.aerolinea}</td>
           <td>${a.capacidad_pasajeros}</td>
+          <td>${a.pesoCargaMaximo}</td>
         </tr>
       `).join('');
 
@@ -194,7 +198,7 @@ async function renderPage(page) {
         </div> <br>
         <table class="table">
           <thead>
-            <tr><th>ID</th><th>Modelo</th><th>Aerolínea</th><th>Capacidad</th></tr>
+            <tr><th>ID</th><th>Modelo</th><th>Aerolínea</th><th>Capacidad</th><th>Peso de Carga Maximo</th></tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
@@ -222,6 +226,29 @@ async function renderPage(page) {
           <tbody>${rows}</tbody>
         </table>
       `;
+    }else if(page=='equipaje'){
+      const equipajes = await window.api.getEquipaje();
+      let rows = equipajes.map(eq => `
+        <tr>
+          <td>${eq.id_equipaje}</td>
+          <td>${eq.id_pasajero}</td>
+          <td>${eq.peso}</td>
+          <td>${eq.estado}</td>
+        </tr>
+      `).join('');
+
+      content.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3>Administración de Equipaje </h3>
+            <button class="btn btn-success" onclick="showRegistrarEquipaje()">+ Nuevo Equipaje</button>
+        </div> <br>
+        <table class="table">
+          <thead>
+            <tr><th>Id Equipaje</th><th>Id Pasajero</th><th>Peso en Kg</th><th>Estado Actual</th></tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      `;
     }
   } catch (error) {
     console.error(error);
@@ -235,6 +262,8 @@ window.showRegistrarPasajero = () => {
   const html = `
         <div class="form-group"><label>Nombre</label><input id="p-nombre" class="form-control"></div>
         <div class="form-group"><label>Apellido</label><input id="p-apellido" class="form-control"></div>
+        <div class="form-group"><label>Edad</label><input id="p-edad" class="form-control" type="number"></div>
+        <div class="form-group"><label>Nacionalidad</label><input id="p-nacionalidad" class="form-control"></div>
         <div class="form-group"><label>Correo</label><input id="p-correo" class="form-control"></div>
         <div class="form-group"><label>Teléfono</label><input id="p-telefono" class="form-control"></div>
         <button class="btn btn-primary mt-2" onclick="submitPasajero()">Guardar</button>
@@ -246,11 +275,13 @@ window.submitPasajero = async () => {
   const data = {
     nombre: document.getElementById('p-nombre').value.trim(),
     apellido: document.getElementById('p-apellido').value.trim(),
+    edad: document.getElementById('p-edad').value,
+    nacionalidad : document.getElementById('p-nacionalidad').value.trim(),
     correo: document.getElementById('p-correo').value.trim(),
     telefono: document.getElementById('p-telefono').value.trim()
   };
 
-  if (!data.nombre || !data.apellido || !data.correo || !data.telefono) {
+  if (!data.nombre || !data.apellido || !data.edad || !data.nacionalidad || !data.correo || !data.telefono) {
     customAlert('Por favor, complete todos los campos');
     return;
   }
@@ -427,6 +458,7 @@ window.showRegistrarAvion = () => {
         <div class="form-group"><label>Modelo</label><input id="a-modelo" class="form-control"></div>
         <div class="form-group"><label>Aerolínea</label><input id="a-aerolinea" class="form-control"></div>
         <div class="form-group"><label>Capacidad</label><input type="number" id="a-capacidad" class="form-control"></div>
+        <div class="form-group"><label>Peso Máximo a Cargar</label><input type="number" id="a-capacidadCargaMaxima" class="form-control"></div>
         <button class="btn btn-primary mt-2" onclick="submitAvion()">Guardar</button>
     `;
   showModal('Registrar Avión', html);
@@ -436,10 +468,11 @@ window.submitAvion = async () => {
   const data = {
     modelo: document.getElementById('a-modelo').value.trim(),
     aerolinea: document.getElementById('a-aerolinea').value.trim(),
-    capacidad_pasajeros: document.getElementById('a-capacidad').value
+    capacidad_pasajeros: document.getElementById('a-capacidad').value,
+    pesoCargaMaximo : document.getElementById('a-capacidadCargaMaxima').value
   };
 
-  if (!data.modelo || !data.aerolinea || !data.capacidad_pasajeros) {
+  if (!data.modelo || !data.aerolinea || !data.capacidad_pasajeros || !data.pesoCargaMaximo) {
     customAlert('Por favor, complete todos los campos');
     return;
   }
@@ -449,11 +482,17 @@ window.submitAvion = async () => {
     return;
   }
 
+  if (parseInt(data.pesoCargaMaximo) <= 0) {
+    customAlert('El peso debe ser mayor a 0');
+    return;
+  }
+
   await window.api.registrarAvion(data);
   closeModal();
   renderPage('aviones');
 };
 
+// ================= AEROPUERTO =================
 window.showRegistrarAeropuerto = () => {
   const html = `
         <div class="form-group"><label>Nombre</label><input id="ae-nombre" class="form-control"></div>
@@ -481,6 +520,43 @@ window.submitAeropuerto = async () => {
   await window.api.registrarAeropuerto(data);
   closeModal();
   renderPage('aeropuertos');
+};
+
+// ================= EQUIPAJES =================
+window.showRegistrarEquipaje = async () => {
+  const pasajeros = await window.api.getPasajeros();
+  const options = pasajeros.map(p => `<option value="${p.id_pasajero}">${p.id_pasajero} (${p.nombre} ${p.apellido})</option>`).join('');
+  const html = `
+        <div class="form-group"><label>Pasajero al que le corresponde</label><select id="eq-pasajero" class="form-control">${options}</select></div>
+        <div class="form-group"><label>Peso</label><input type="number" id="eq-peso" class="form-control"></div>
+        <div class="form-group"><label>Estado</label><select id="eq-estado" class="form-control">
+            <option>Abordando</option><option>Abordo</option><option>Descargando</option><option>Entregado</option><option>Extraviado</option>
+        </select></div>
+        <button class="btn btn-primary mt-2" onclick="submitEquipaje()">Registrar</button>
+    `;
+  showModal('Registrar Equipaje', html);
+};
+
+window.submitEquipaje = async () => {
+  const data = {
+    id_pasajero: document.getElementById('eq-pasajero').value.trim(),
+    peso: document.getElementById('eq-peso').value.trim(),
+    estado: document.getElementById('eq-estado').value,
+  };
+
+  if (!data.id_pasajero || !data.peso || !data.estado) {
+    customAlert('Por favor, complete todos los campos');
+    return;
+  }
+
+  if (parseInt(data.peso) <= 0) {
+    customAlert('La capacidad debe ser mayor a 0');
+    return;
+  }
+
+  await window.api.registrarEquipaje(data);
+  closeModal();
+  renderPage('aviones');
 };
 
 // Modal Logic
