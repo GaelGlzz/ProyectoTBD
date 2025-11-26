@@ -150,6 +150,22 @@ ipcMain.handle('getHistorialPasajero', async (event, idPasajero) => {
   });
 });
 
+ipcMain.handle('getUltimoAeropuertoAvion', async (event, idAvion) => {
+    return new Promise((resolve, reject) => {
+        const sql = `
+            SELECT COALESCE(id_ultimoAeropuerto, 1) as id_aeropuerto
+            FROM avion
+            WHERE id_avion = ?
+        `;
+        db.query(sql, [idAvion], (error, results) => {
+            if (error) reject(error);
+            else {
+                // Si no se encuentra el avión o es nuevo (NULL), devolverá 1 (por COALESCE)
+                resolve(results.length > 0 ? results[0].id_aeropuerto : 1);
+            }
+        });
+    });
+});
 // ========================
 // CREATE / UPDATE
 // ========================

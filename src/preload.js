@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('api', {
   getBoletos: () => ipcRenderer.invoke('getBoletos'),
   getAeropuertos: () => ipcRenderer.invoke('getAeropuertos'),
   getHistorialPasajero: (id) => ipcRenderer.invoke('getHistorialPasajero', id),
+  getUltimoAeropuertoAvion: (idAvion) => ipcRenderer.invoke('getUltimoAeropuertoAvion', idAvion),
 
   // Actions
   registrarPasajero: (data) => ipcRenderer.invoke('registrarPasajero', data),

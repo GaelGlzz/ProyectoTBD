@@ -301,21 +301,82 @@ window.submitPasajero = async () => {
 window.showRegistrarVuelo = async () => {
   const aeropuertos = await window.api.getAeropuertos();
   const aviones = await window.api.getAviones();
-  const options = aeropuertos.map(a => `<option value="${a.id_aeropuerto}">${a.ciudad} (${a.pais})</option>`).join('');
-  const options2 = aviones.map(av => `<option value="${av.id_avion}">${av.id_avion} (${av.aerolinea})</option>`).join('');
+  
+  // Mapeamos los aeropuertos para poder buscar su nombre/país fácilmente
+ const aeropuertoMap = {};
+  const optionsAeropuertos = aeropuertos.map(a => { // **RENOMBRAMOS la variable a optionsAeropuertos**
+    aeropuertoMap[a.id_aeropuerto] = `${a.ciudad} (${a.pais})`;
+    return `<option value="${a.id_aeropuerto}">${a.ciudad} (${a.pais})</option>`;
+  }).join('');
+  
+  // 2. Mapeamos las opciones de Aviones
+  const optionsAviones = aviones.map(av => `<option value="${av.id_avion}">${av.id_avion} (${av.aerolinea} - ${av.modelo})</option>`).join('');
 
   const html = `
-        <div class="form-group"><label>Salida</label><input type="datetime-local" id="v-salida" class="form-control"></div>
-        <div class="form-group"><label>Llegada</label><input type="datetime-local" id="v-llegada" class="form-control"></div>
-        <div class="form-group"><label>Avion</label><select id="v-avion" class="form-control">${options2}</select></div>
-        <div class="form-group"><label>Origen</label><select id="v-origen" class="form-control">${options}</select></div>
-        <div class="form-group"><label>Destino</label><select id="v-destino" class="form-control">${options}</select></div>
-        <div class="form-group"><label>Estado</label><select id="v-estado" class="form-control">
-            <option>Programado</option><option>En Curso</option><option>Aterrizado</option><option>Cancelado</option>
-        </select></div>
-        <button class="btn btn-primary mt-2" onclick="submitVuelo()">Guardar</button>
-    `;
+    <div class="form-group"><label>Salida</label><input type="datetime-local" id="v-salida" class="form-control"></div>
+    <div class="form-group"><label>Llegada</label><input type="datetime-local" id="v-llegada" class="form-control"></div>
+    
+    <div class="form-group">
+        <label>Avion</label>
+        <select id="v-avion" class="form-control" onchange="actualizarOrigenVuelo()"> 
+            ${optionsAviones} 
+        </select>
+    </div>
+    
+    <div class="form-group">
+      <label>Origen (Último destino del avión)</label>
+      <input type="text" id="v-origen-display" class="form-control" disabled>
+      <input type="hidden" id="v-origen-value">
+    </div>
+    
+    <div class="form-group"><label>Destino</label><select id="v-destino" class="form-control">${optionsAeropuertos}</select></div>
+    
+    <div class="form-group"><label>Estado</label><select id="v-estado" class="form-control">
+      <option>Programado</option><option>En Curso</option><option>Aterrizado</option><option>Cancelado</option>
+    </select></div>
+    <button class="btn btn-primary mt-2" onclick="submitVuelo()">Guardar</button>
+  `;
   showModal('Registrar Vuelo', html);
+  
+  // Llamamos a la función de actualización inmediatamente después de mostrar el modal
+  actualizarOrigenVuelo();
+};
+
+window.actualizarOrigenVuelo = async () => {
+    const idAvion = document.getElementById('v-avion').value;
+    const displayElement = document.getElementById('v-origen-display');
+    const valueElement = document.getElementById('v-origen-value');
+
+    if (!idAvion) {
+        displayElement.value = 'Seleccione un avión';
+        valueElement.value = '';
+        return;
+    }
+
+    try {
+        // Llama a la nueva función API para obtener el ID del último aeropuerto
+        const idUltimoAeropuerto = await window.api.getUltimoAeropuertoAvion(idAvion);
+        
+        // Obtenemos los aeropuertos para buscar el nombre (podrías optimizar esta parte)
+        const aeropuertos = await window.api.getAeropuertos();
+        
+        const aeropuerto = aeropuertos.find(a => a.id_aeropuerto == idUltimoAeropuerto);
+
+        if (aeropuerto) {
+            displayElement.value = `${aeropuerto.ciudad} (${aeropuerto.pais})`;
+            valueElement.value = idUltimoAeropuerto; // Guardamos el ID real en el campo oculto
+        } else {
+            // Esto solo debería ocurrir si el ID 1 no existe
+            displayElement.value = `Error: Aeropuerto ID ${idUltimoAeropuerto} no encontrado`;
+            valueElement.value = idUltimoAeropuerto; 
+        }
+
+    } catch (error) {
+        console.error("Error al obtener último aeropuerto:", error);
+        customAlert("Error al cargar la posición del avión.");
+        displayElement.value = "Error de carga";
+        valueElement.value = '';
+    }
 };
 
 window.submitVuelo = async () => {
@@ -323,7 +384,7 @@ window.submitVuelo = async () => {
     id_avion: document.getElementById('v-avion').value,
     hora_salida: document.getElementById('v-salida').value,
     hora_llegada: document.getElementById('v-llegada').value,
-    id_aeropuerto_origen: document.getElementById('v-origen').value,
+    id_aeropuerto_origen: document.getElementById('v-origen-value').value,
     id_aeropuerto_destino: document.getElementById('v-destino').value,
     estado: document.getElementById('v-estado').value
   };
@@ -342,6 +403,23 @@ window.submitVuelo = async () => {
     customAlert('La hora de llegada debe ser posterior a la hora de salida');
     return;
   }
+  try {
+        await window.api.registrarVuelo(data);
+        customAlert('Vuelo registrado correctamente.'); // Éxito
+        closeModal();
+        renderPage('vuelos');
+    } catch (error) {
+        // Capturamos el error de la base de datos/backend aquí
+        console.error('Error al registrar vuelo:', error);
+        
+        // El error.message contendrá el mensaje del disparador SQL
+        const errorMessage = error.message.includes('Error de flujo') 
+                           ? 'No se puede programar: El avión no está en el aeropuerto de origen.'
+                           : 'Error desconocido al registrar el vuelo.';
+                           
+        customAlert(errorMessage);
+        // NO cerramos la modal para que el usuario pueda corregir el error
+    }
 
   await window.api.registrarVuelo(data);
   closeModal();
