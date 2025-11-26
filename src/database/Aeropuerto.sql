@@ -25,7 +25,8 @@ CREATE TABLE IF NOT EXISTS avion (
     modelo VARCHAR(100),
     capacidad_pasajeros INT,
     aerolinea VARCHAR(100),
-    pesoCargaMaximo BIGINT NOT NULL
+    pesoCargaMaximo BIGINT NOT NULL,
+    CargaActual BIGINT DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS vuelo (
@@ -85,3 +86,31 @@ SELECT hora_salida,vuelo.id_avion,aeropuerto.nombre,vuelo.estado
 FROM vuelo INNER JOIN aeropuerto ON vuelo.id_aeropuerto_origen = aeropuerto.id_aeropuerto
 
 /*------------------------------------------------DISPARADORES------------------------------------------------------*/
+
+DROP TRIGGER IF EXISTS `actualizar_carga_avion_despues_emitir_boleto`;
+SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
+DELIMITER //
+CREATE TRIGGER actualizar_carga_avion_despues_emitir_boleto
+AFTER INSERT ON boleto
+FOR EACH ROW
+BEGIN
+    DECLARE total_peso_equipaje DECIMAL(10, 2);
+    DECLARE avion_id INT;
+
+    -- 1. Obtener el ID del avión asociado al vuelo del nuevo boleto
+    SELECT id_avion INTO avion_id
+    FROM vuelo
+    WHERE id_vuelo = NEW.id_vuelo;
+
+    -- 2. Calcular la suma del peso de todo el equipaje del pasajero
+    SELECT COALESCE(SUM(peso), 0) INTO total_peso_equipaje
+    FROM equipaje
+    WHERE id_pasajero = NEW.id_pasajero;
+
+    -- 3. Actualizar la CargaActual del avión
+    UPDATE avion
+    SET CargaActual = CargaActual + total_peso_equipaje
+    WHERE id_avion = avion_id;
+END//
+DELIMITER ;
+SET SQL_MODE=@OLDTMP_SQL_MODE;

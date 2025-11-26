@@ -188,6 +188,7 @@ async function renderPage(page) {
           <td>${a.aerolinea}</td>
           <td>${a.capacidad_pasajeros}</td>
           <td>${a.pesoCargaMaximo}</td>
+          <td>${a.CargaActual}</td>
         </tr>
       `).join('');
 
@@ -198,7 +199,7 @@ async function renderPage(page) {
         </div> <br>
         <table class="table">
           <thead>
-            <tr><th>ID</th><th>Modelo</th><th>Aerolínea</th><th>Capacidad</th><th>Peso de Carga Maximo</th></tr>
+            <tr><th>ID</th><th>Modelo</th><th>Aerolínea</th><th>Capacidad</th><th>Peso de Carga Maximo</th><th>Carga Actual</th></tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
