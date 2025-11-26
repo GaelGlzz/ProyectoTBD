@@ -117,6 +117,7 @@ async function renderPage(page) {
             <h3>Control de Vuelos</h3>
             <button class="btn btn-success" onclick="showRegistrarVuelo()">+ Nuevo Vuelo</button>
             <button class="btn btn-warning" onclick="showModificarVuelo()">! Modificar Vuelo</button>
+            <button class="btn btn-danger" onclick="showCancelarVuelo()">! Cancelar Vuelo</button>
         </div> <br>
         <table class="table">
           <thead>
@@ -380,62 +381,62 @@ window.actualizarOrigenVuelo = async () => {
 };
 
 window.submitVuelo = async () => {
-  const data = {
-    id_avion: document.getElementById('v-avion').value,
-    hora_salida: document.getElementById('v-salida').value,
-    hora_llegada: document.getElementById('v-llegada').value,
-    id_aeropuerto_origen: document.getElementById('v-origen-value').value,
-    id_aeropuerto_destino: document.getElementById('v-destino').value,
-    estado: document.getElementById('v-estado').value
-  };
+    const data = {
+        id_avion: document.getElementById('v-avion').value,
+        hora_salida: document.getElementById('v-salida').value,
+        hora_llegada: document.getElementById('v-llegada').value,
+        id_aeropuerto_origen: document.getElementById('v-origen-value').value,
+        id_aeropuerto_destino: document.getElementById('v-destino').value,
+        estado: document.getElementById('v-estado').value
+    };
 
-  if (!data.hora_salida || !data.hora_llegada) {
-    customAlert('Por favor, complete las fechas de salida y llegada');
-    return;
-  }
+    // validaciones
+    if (!data.hora_salida || !data.hora_llegada) {
+        customAlert('Por favor, complete las fechas de salida y llegada');
+        return;
+    }
 
-  if (data.id_aeropuerto_origen === data.id_aeropuerto_destino) {
-    customAlert('El aeropuerto de origen y destino deben ser diferentes');
-    return;
-  }
+    if (data.id_aeropuerto_origen === data.id_aeropuerto_destino) {
+        customAlert('El aeropuerto de origen y destino deben ser diferentes');
+        return;
+    }
 
-  if (new Date(data.hora_salida) >= new Date(data.hora_llegada)) {
-    customAlert('La hora de llegada debe ser posterior a la hora de salida');
-    return;
-  }
-  try {
-        await window.api.registrarVuelo(data);
-        customAlert('Vuelo registrado correctamente.'); // Éxito
-        closeModal();
-        renderPage('vuelos');
-    } catch (error) {
-        // Capturamos el error de la base de datos/backend aquí
-        console.error('Error al registrar vuelo:', error);
+    if (new Date(data.hora_salida) >= new Date(data.hora_llegada)) {
+        customAlert('La hora de llegada debe ser posterior a la hora de salida');
+        return;
+    }
+    try {
+        await window.api.registrarVuelo(data);
+        customAlert('Vuelo registrado correctamente.');
+        closeModal();
+        renderPage('vuelos');
+    } catch (error) {
+        console.error('Error al registrar vuelo:', error);
+        const rawMessage = error.message; 
         
-        // El error.message contendrá el mensaje del disparador SQL
-        const errorMessage = error.message.includes('Error de flujo') 
-                           ? 'No se puede programar: El avión no está en el aeropuerto de origen.'
-                           : 'Error desconocido al registrar el vuelo.';
-                           
-        customAlert(errorMessage);
-        // NO cerramos la modal para que el usuario pueda corregir el error
+        if (rawMessage && rawMessage.includes('ERROR DE HORARIO')) {
+            const cleanMessage = rawMessage.replace(/[\u0080-\uFFFF]/g, ' '); 
+            customAlert(`${cleanMessage}`); 
+            return;
+        }
+        if (rawMessage && rawMessage.includes('Error de flujo')) {
+            displayMessage = 'ERROR DE FLUJO: El avión no está en el aeropuerto de origen correcto.';
+        }
+        customAlert(displayMessage);
     }
-
-  await window.api.registrarVuelo(data);
-  closeModal();
-  renderPage('vuelos');
 };
 
 window.showModificarVuelo = async()=>{
   const vuelos = await window.api.getVuelos();
-  const options = vuelos.map(v => `<option value="${v.id_vuelo}">${v.id_aeropuerto_origen} (${v.estado})</option>`).join('');
+  const vuelosActivos = vuelos.filter(v => v.estado !== 'Cancelado');
+  const options = vuelosActivos.map(v => `<option value="${v.id_vuelo}">Id: ${v.id_vuelo} / Ruta: ${v.origen_ciudad} -> ${v.destino_ciudad} / Estado:(${v.estado})</option>`).join('');
 
   const html = `
         <div class="form-group"><label>Vuelo</label><select id="v-vuelo" class="form-control">${options}</select></div>
         <div class="form-group"><label>Salida</label><input type="datetime-local" id="v-salida" class="form-control"></div>
         <div class="form-group"><label>Llegada</label><input type="datetime-local" id="v-llegada" class="form-control"></div>
         <div class="form-group"><label>Estado</label><select id="v-estado" class="form-control">
-            <option>Programado</option><option>En Curso</option><option>Aterrizado</option><option>Cancelado</option>
+            <option>Programado</option><option>En Curso</option><option>Aterrizado</option>
         </select></div>
         <button class="btn btn-primary mt-2" onclick="modificarVuelo()">Modificar</button>
     `;
@@ -470,6 +471,37 @@ window.modificarVuelo = async () => {
   renderPage('vuelos');
 };
 
+window.showCancelarVuelo = async()=>{
+  const vuelos = await window.api.getVuelos();
+  const vuelosActivos = vuelos.filter(v => v.estado !== 'Cancelado');
+  const options = vuelosActivos.map(v => `<option value="${v.id_vuelo}">Id: ${v.id_vuelo} / Ruta: ${v.origen_ciudad} -> ${v.destino_ciudad} / Estado:(${v.estado})</option>`).join('');
+
+  const html = `
+        <div class="form-group"><label>Vuelo</label><select id="v-vuelo" class="form-control">${options}</select></div>
+         <div class="form-group"><select id="v-estado" style="display: none"  class="form-control">
+            <option>Cancelado</option>
+        </select></div>
+        <button class="btn btn-primary mt-2" onclick="cancelarVuelo()">Cancelar</button>
+    `;
+  showModal('Cancelar Vuelo', html);
+};
+
+window.cancelarVuelo = async () => {
+  const data = {
+    estado: document.getElementById('v-estado').value,
+    id_vuelo : document.getElementById('v-vuelo').value
+  };
+
+
+  if (!data.id_vuelo) {
+    customAlert('Elige un Vuelo');
+    return;
+  }
+
+  await window.api.cancelarVuelo(data);
+  closeModal();
+  renderPage('vuelos');
+};
 // ================= BOLETOS =================
 window.showEmitirBoleto = async () => {
   const pasajeros = await window.api.getPasajeros();

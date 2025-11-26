@@ -197,6 +197,15 @@ ipcMain.handle('modificarVuelo', async (event, data) => {
   });
 });
 
+ipcMain.handle('cancelarVuelo', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    db.query('UPDATE vuelo SET estado = ? WHERE id_vuelo = ?', [data.estado,data.id_vuelo], (err, res) => {
+      if (err) reject(err);
+      else resolve({message: 'Vuelo cancelado' });
+    });
+  });
+});
+
 ipcMain.handle('registrarAeropuerto', async (event, data) => {
   return new Promise((resolve, reject) => {
     db.query('INSERT INTO aeropuerto SET ?', data, (err, res) => {

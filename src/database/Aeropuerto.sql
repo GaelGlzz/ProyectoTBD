@@ -87,13 +87,9 @@ FROM vuelo INNER JOIN aeropuerto ON vuelo.id_aeropuerto_origen = aeropuerto.id_a
 
 /*------------------------------------------------DISPARADORES------------------------------------------------------*/
 
-DROP TRIGGER IF EXISTS `actualizar_carga_avion_despues_emitir_boleto`;
 SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
 DELIMITER //
-CREATE TRIGGER actualizar_carga_avion_despues_emitir_boleto
-AFTER INSERT ON boleto
-FOR EACH ROW
-BEGIN
+CREATE TRIGGER `actualizar_carga_avion_despues_emitir_boleto` AFTER INSERT ON `boleto` FOR EACH ROW BEGIN
     DECLARE total_peso_equipaje DECIMAL(10, 2);
     DECLARE avion_id INT;
 
@@ -106,43 +102,66 @@ BEGIN
     SELECT COALESCE(SUM(peso), 0) INTO total_peso_equipaje
     FROM equipaje
     WHERE id_pasajero = NEW.id_pasajero
+    AND estado IN ('Abordo');
 
     -- 3. Actualizar la CargaActual del avión
     UPDATE avion
     SET CargaActual = CargaActual + total_peso_equipaje
     WHERE id_avion = avion_id;
-       
+    	
 END//
 DELIMITER ;
 SET SQL_MODE=@OLDTMP_SQL_MODE;
 
-DROP TRIGGER IF EXISTS `control_flujo_avion_vuelo`;
+-- Dumping structure for trigger aerocontrol.actualizar_hora_llegada_avion
+SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
+DELIMITER //
+CREATE TRIGGER `actualizar_hora_llegada_avion` AFTER INSERT ON `vuelo` FOR EACH ROW BEGIN
+    UPDATE avion
+    SET ultima_hora_llegada = NEW.hora_llegada
+    WHERE id_avion = NEW.id_avion;
+END//
+DELIMITER ;
+SET SQL_MODE=@OLDTMP_SQL_MODE;
+
+-- Dumping structure for trigger aerocontrol.control_flujo_avion_vuelo
 SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
 DELIMITER //
 CREATE TRIGGER `control_flujo_avion_vuelo` BEFORE INSERT ON `vuelo` FOR EACH ROW BEGIN
     DECLARE ultimo_aeropuerto_id INT;
-    -- No necesitamos el modelo del avión si no se va a usar en el mensaje de error
+    DECLARE ultima_llegada DATETIME;
+    DECLARE error_msg VARCHAR(512); 
     
-    -- 1. Obtener el último aeropuerto registrado o usar 1 como valor por defecto
-    SELECT COALESCE(id_ultimoAeropuerto, 1) INTO ultimo_aeropuerto_id
+    SELECT 
+        COALESCE(id_ultimoAeropuerto, 1), 
+        ultima_hora_llegada 
+    INTO 
+        ultimo_aeropuerto_id, 
+        ultima_llegada
     FROM avion
     WHERE id_avion = NEW.id_avion;
 
-    -- 2. VALIDACIÓN: Si el aeropuerto de origen no coincide con el último aeropuerto conocido
+    -- ===============================================
+    -- validacion para el aeropuerto de origen
+    -- ===============================================
     IF NEW.id_aeropuerto_origen <> ultimo_aeropuerto_id THEN
-        
-        -- Lanzar un error genérico (45000 es el código de error para errores definidos por el usuario)
-        -- ESTO DETIENE EL INSERT, que es el objetivo principal.
-        SIGNAL SQLSTATE '45000'
-        SET MESSAGE_TEXT = 'Error de flujo: El avión no está en el aeropuerto de origen especificado.';
-        
-    ELSE 
-        -- 3. ACTUALIZACIÓN: Solo se ejecuta si la validación fue exitosa (ELSE del IF)
-        UPDATE avion
-        SET id_ultimoAeropuerto = NEW.id_aeropuerto_destino
-        WHERE id_avion = NEW.id_avion;
-        
+        SET error_msg = 'Error de flujo: El avion no esta en el aeropuerto de origen especificado.';
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
     END IF;
+
+    -- ===============================================
+    -- validacion para que la hora de donde sale sea mayor a la ultima de llegada
+    -- ===============================================
+    IF ultima_llegada IS NOT NULL AND NEW.hora_salida < ultima_llegada THEN
+        SET error_msg = CONCAT('ERROR DE HORARIO: La salida debe ser posterior a la llegada anterior (', 
+                               DATE_FORMAT(ultima_llegada, '%Y-%m-%d %H:%i:%s'), 
+                               ').');
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = error_msg;
+    END IF;
+
+    UPDATE avion
+    SET id_ultimoAeropuerto = NEW.id_aeropuerto_destino
+    WHERE id_avion = NEW.id_avion;
     
 END//
 DELIMITER ;
