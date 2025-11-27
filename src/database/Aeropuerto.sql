@@ -26,7 +26,10 @@ CREATE TABLE IF NOT EXISTS avion (
     capacidad_pasajeros INT,
     aerolinea VARCHAR(100),
     pesoCargaMaximo BIGINT NOT NULL,
-    CargaActual BIGINT DEFAULT 0
+    CargaActual BIGINT DEFAULT 0,
+    id_ultimoAeropuerto int(11) DEFAULT 1,
+    ultima_hora_llegada datetime DEFAULT current_timestamp(),
+    FOREIGN KEY (id_ultimoAeropuerto) REFERENCES vuelo(id_aeropuerto_destino)
 );
 
 CREATE TABLE IF NOT EXISTS vuelo (
