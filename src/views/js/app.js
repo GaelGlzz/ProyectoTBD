@@ -191,6 +191,7 @@ async function renderPage(page) {
           <td>${a.capacidad_pasajeros}</td>
           <td>${a.pesoCargaMaximo}</td>
           <td>${a.CargaActual}</td>
+          <td>${a.estado}</td>
         </tr>
       `).join('');
 
@@ -198,10 +199,11 @@ async function renderPage(page) {
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3>Gestión de Aviones</h3>
             <button class="btn btn-success" onclick="showRegistrarAvion()">+ Nuevo Avión</button>
+            <button class="btn btn-warning" onclick="showMantenimiento()">Mantenimiento</button>
         </div> <br>
         <table class="table">
           <thead>
-            <tr><th>ID</th><th>Modelo</th><th>Aerolínea</th><th>Capacidad</th><th>Peso de Carga Maximo</th><th>Carga Actual</th></tr>
+            <tr><th>ID</th><th>Modelo</th><th>Aerolínea</th><th>Capacidad</th><th>Peso de Carga Maximo</th><th>Carga Actual</th><th>Estado</th></tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
@@ -429,7 +431,7 @@ window.submitVuelo = async () => {
 
 window.showModificarVuelo = async()=>{
   const vuelos = await window.api.getVuelos();
-  const vuelosActivos = vuelos.filter(v => v.estado !== 'Cancelado');
+  const vuelosActivos = vuelos.filter(v => v.estado !== 'Cancelado' && v.estado !== 'Aterrizado');
   vuelosCache = vuelosActivos;
   const options = vuelosActivos.map(v => `<option value="${v.id_vuelo}">Id: ${v.id_vuelo} / Ruta: ${v.origen_ciudad} -> ${v.destino_ciudad} / Estado:(${v.estado})</option>`).join('');
 
@@ -567,7 +569,7 @@ window.cargarDatosVueloModificar = () => {
 
 window.showCancelarVuelo = async()=>{
   const vuelos = await window.api.getVuelos();
-  const vuelosActivos = vuelos.filter(v => v.estado !== 'Cancelado');
+  const vuelosActivos = vuelos.filter(v => v.estado == 'Programado');
   const options = vuelosActivos.map(v => `<option value="${v.id_vuelo}">Id: ${v.id_vuelo} / Ruta: ${v.origen_ciudad} -> ${v.destino_ciudad} / Estado:(${v.estado})</option>`).join('');
 
   const html = `
@@ -697,6 +699,57 @@ window.submitAvion = async () => {
   renderPage('aviones');
 };
 
+window.showMantenimiento = async()=>{
+  const aviones = await window.api.getAviones();
+  const avionesDisponibles = aviones.filter(a => a.estado !== 'En uso');
+  const options = avionesDisponibles.map(a => `<option value="${a.id_avion}">Id: ${a.id_avion} / Modelo:  ${a.modelo} / Aeroliniea:  ${a.aerolinea}</option>`).join('');
+
+  const html = `
+        <div class="form-group"><label>Vuelo</label><select id="a-avion" class="form-control">${options}</select></div>
+         <div class="form-group"><select id="a-estado" style="display: none"  class="form-control">
+            <option>En mantenimiento</option>
+        </select></div>
+        <div class="form-group"><select id="a-estado2" style="display: none"  class="form-control">
+            <option>En espera</option>
+        </select></div>
+        <button class="btn btn-primary mt-2" onclick="mantenimiento()">Poner en mantenimiento</button>
+        <button class="btn btn-primary mt-2" onclick="fueramantenimiento()">Sacar de mantenimiento</button>
+    `;
+  showModal('Mantenimiento de aviones', html);
+};
+
+window.mantenimiento = async () => {
+
+  const data = {
+    estado: document.getElementById('a-estado').value,
+    id_avion : document.getElementById('a-avion').value
+  };
+
+  if (!data.id_avion) {
+    customAlert('Elige un avion');
+    return;
+  }
+
+  await window.api.mantenimientoAvion(data);
+  closeModal();
+  renderPage('aviones');
+};
+window.fueramantenimiento = async () => {
+
+  const data = {
+    estado: document.getElementById('a-estado2').value,
+    id_avion : document.getElementById('a-avion').value
+  };
+
+  if (!data.id_avion) {
+    customAlert('Elige un avion');
+    return;
+  }
+
+  await window.api.mantenimientoAvion(data);
+  closeModal();
+  renderPage('aviones');
+};
 // ================= AEROPUERTO =================
 window.showRegistrarAeropuerto = () => {
   const html = `
