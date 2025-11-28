@@ -235,10 +235,12 @@ ipcMain.handle('registrarEquipaje', async (event, data) => {
 
 ipcMain.handle('emitirBoleto', async (event, data) => {
   return new Promise((resolve, reject) => {
-    // data: { id_pasajero, id_vuelo, precio, terminal, asiento }
+    // data: { id_pasajero, id_vuelo, precio, terminal, asiento } 
     db.query('INSERT INTO boleto SET ?', data, (err, res) => {
       if (err) reject(err);
-      else resolve({ id: res.insertId, message: 'Boleto emitido' });
+      else{
+        resolve(res.insertId);
+      } 
     });
   });
 });
@@ -255,6 +257,24 @@ ipcMain.handle('asignarAvion', async (event, idVuelo, idAvion) => {
     db.query('UPDATE avion SET id_vuelo = ? WHERE id_avion = ?', [idVuelo, idAvion], (err, res) => {
       if (err) reject(err);
       else resolve({ message: 'Avión asignado al vuelo' });
+    });
+  });
+});
+
+/*Llamar FUNCIONES almacenados*/
+ipcMain.handle('obtenertipoPasajero', async () => {
+  return new Promise((resolve, reject) => {
+    const sql=`
+        SET @Id_boleto = (SELECT MAX(id_boleto) FROM boleto);
+        SET @Id_pasajero = (SELECT id_pasajero FROM boleto WHERE id_boleto = @Id_boleto);
+        SET @b= obtenerTipoPasajero(@Id_pasajero);
+        UPDATE boleto SET tipoPasajero = @b WHERE id_boleto = @Id_boleto;
+        SET @precio = obtener_descuento_boleto(@Id_boleto);
+        UPDATE boleto SET precio = @precio WHERE id_boleto = @Id_boleto
+        `;
+    db.query(sql, (err, res) => {
+      if (err) reject(err);
+      else resolve({message: 'Pasajero registrado'});
     });
   });
 });

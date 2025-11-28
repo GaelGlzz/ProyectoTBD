@@ -4,7 +4,8 @@ let conexion = mysql.createConnection({
     host: 'localhost',
     user: 'root',
     database: 'aerocontrol',
-    password: ''
+    password: '',
+    multipleStatements: true
 });
 
 conexion.connect(function (err) {

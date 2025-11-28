@@ -190,6 +190,7 @@ async function renderPage(page) {
           <td>${a.capacidad_pasajeros}</td>
           <td>${a.pesoCargaMaximo}</td>
           <td>${a.CargaActual}</td>
+          <td>${a.estado}</td>
         </tr>
       `).join('');
 
@@ -200,7 +201,7 @@ async function renderPage(page) {
         </div> <br>
         <table class="table">
           <thead>
-            <tr><th>ID</th><th>Modelo</th><th>Aerolínea</th><th>Capacidad</th><th>Peso de Carga Maximo</th><th>Carga Actual</th></tr>
+            <tr><th>ID</th><th>Modelo</th><th>Aerolínea</th><th>Capacidad</th><th>Peso de Carga Maximo</th><th>Carga Actual</th><th>Estado</th></tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
@@ -261,11 +262,26 @@ async function renderPage(page) {
 // ================= HELPERS =================
 // ================= PASAJEROS =================
 window.showRegistrarPasajero = () => {
+  const nacionalidades = [
+    "Mexicana","Afgana","Albana","Alemana","Argelina","Argentina","Armenia","Australiana","Austriaca","Azerbaiyana","Bahameña","Bahreiní","Bangladesí","Barbadense","Belga","Beliceña","Beninesa","Bielorrusa","Boliviana","Bosnia","Botswanesa","Brasileña","Británica","Bruneana","Búlgara","Burkinesa",
+    "Burundesa","Caboverdiana","Camboyana","Camerunesa","Canadiense","Catarí","Centrafricana","Checa","Chilena","China","Chipriota","Colombiana","Comorense","Congoleña","Costarricense","Croata","Cubana","Danesa","Dominicana",
+    "Ecuatoriana","Egipcia","Salvadoreña","Emiratí","Eslovaca","Eslovena","Española","Estadounidense","Estonia","Etíope","Filipina","Finlandesa","Francesa","Gabonesa","Galesa","Gambiana","Georgiana","Ghanesa","Griega","Guatemalteca","Guineana",
+    "Guyanesa","Haitiana","Hondureña","Húngara","India","Indonesa","Iraní","Iraquí","Irlandesa","Islandesa","Israelí","Italiana","Jamaiquina","Japonesa","Jordana","Kazaja","Keniana","Kirguisa","Kuwaití","Laosiana","Letona","Libanesa","Liberiana",
+    "Libia","Lituana","Luxemburguesa","Macedonia","Malaya","Malaui","Maldiva","Maliense","Maltesa","Marfileña","Marroquí","Moldava","Monegasca","Mongola","Mozambiqueña","Namibia","Neozelandesa","Nepalí","Nicaragüense","Nigeriana","Norcoreana","Noruega","Omaní","Pakistaní","Palestina","Panameña","Paraguaya","Peruana","Polaca","Portuguesa","Puertorriqueña","Qatarí","Reino Unido","Ruandesa","Rumana","Rusa","Saharaui","Samoana","Saudí","Senegalesa","Serbia","Singapurense","Siria","Somalí","Sudafricana","Sudanesa","Sueca","Suiza","Surcoreana","Tailandesa","Tanzana","Tayika","Tunecina","Turca","Turcomana","Ucraniana","Ugandesa","Uruguaya","Uzbeca","Venezolana","Vietnamita","Yemení","Zambiana","Zimbabuense"
+  ];
+
+  const options=nacionalidades.map(n=>`<option value ="${n}">${n}</option>`).join("");
+
   const html = `
         <div class="form-group"><label>Nombre</label><input id="p-nombre" class="form-control"></div>
         <div class="form-group"><label>Apellido</label><input id="p-apellido" class="form-control"></div>
         <div class="form-group"><label>Edad</label><input id="p-edad" class="form-control" type="number"></div>
-        <div class="form-group"><label>Nacionalidad</label><input id="p-nacionalidad" class="form-control"></div>
+        <div class="form-group">
+        <label>Nacionalidad</label>
+        <select id="p-nacionalidad" class="form-control"> 
+            ${options} 
+        </select>
+    </div>
         <div class="form-group"><label>Correo</label><input id="p-correo" class="form-control"></div>
         <div class="form-group"><label>Teléfono</label><input id="p-telefono" class="form-control"></div>
         <button class="btn btn-primary mt-2" onclick="submitPasajero()">Guardar</button>
@@ -539,10 +555,12 @@ window.submitBoleto = async () => {
     customAlert('El precio debe ser mayor a 0');
     return;
   }
-
   await window.api.emitirBoleto(data);
+
+  await window.api.obtenertipoPasajero();
   closeModal();
   renderPage('boletos');
+  
 };
 
 window.realizarCheckIn = async (id) => {
@@ -570,6 +588,14 @@ window.showRegistrarAvion = () => {
         <div class="form-group"><label>Aerolínea</label><input id="a-aerolinea" class="form-control"></div>
         <div class="form-group"><label>Capacidad</label><input type="number" id="a-capacidad" class="form-control"></div>
         <div class="form-group"><label>Peso Máximo a Cargar</label><input type="number" id="a-capacidadCargaMaxima" class="form-control"></div>
+        <div class="form-group">
+          <label>Estado</label>
+          <select id="a-estado" class="form-control">
+            <option>En Uso</option>
+            <option>En Espera</option>
+            <option>En Mantenimiento</option>
+          </select>
+        </div>
         <button class="btn btn-primary mt-2" onclick="submitAvion()">Guardar</button>
     `;
   showModal('Registrar Avión', html);
@@ -580,10 +606,11 @@ window.submitAvion = async () => {
     modelo: document.getElementById('a-modelo').value.trim(),
     aerolinea: document.getElementById('a-aerolinea').value.trim(),
     capacidad_pasajeros: document.getElementById('a-capacidad').value,
-    pesoCargaMaximo : document.getElementById('a-capacidadCargaMaxima').value
+    pesoCargaM1aximo : document.getElementById('a-capacidadCargaMaxima').value,
+    estado : document.getElementById('a-estado').value
   };
 
-  if (!data.modelo || !data.aerolinea || !data.capacidad_pasajeros || !data.pesoCargaMaximo) {
+  if (!data.modelo || !data.aerolinea || !data.capacidad_pasajeros || !data.pesoCargaMaximo || !data.estado) {
     customAlert('Por favor, complete todos los campos');
     return;
   }

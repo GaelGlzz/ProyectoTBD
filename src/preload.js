@@ -25,4 +25,7 @@ contextBridge.exposeInMainWorld('api', {
   emitirBoleto: (data) => ipcRenderer.invoke('emitirBoleto', data),
   realizarCheckIn: (id) => ipcRenderer.invoke('realizarCheckIn', id),
   asignarAvion: (idVuelo, idAvion) => ipcRenderer.invoke('asignarAvion', idVuelo, idAvion),
+
+  //Stored Procedures
+  obtenertipoPasajero: () => ipcRenderer.invoke('obtenertipoPasajero')
 });

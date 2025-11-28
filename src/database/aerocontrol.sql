@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS `avion` (
   `capacidad_pasajeros` int(11) DEFAULT NULL,
   `aerolinea` varchar(100) DEFAULT NULL,
   `pesoCargaMaximo` bigint(20) NOT NULL,
+  `estado` varchar(30) DEFAULT 'En Uso'
   `CargaActual` bigint(20) DEFAULT 0,
   `id_ultimoAeropuerto` int(11) DEFAULT 1,
   `ultima_hora_llegada` datetime DEFAULT current_timestamp(),
@@ -282,9 +283,46 @@ DROP TABLE IF EXISTS `vuelos_a_abordar`;
 CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `vuelos_a_abordar` AS SELECT hora_salida,vuelo.id_avion,aeropuerto.nombre,vuelo.estado
 FROM vuelo INNER JOIN aeropuerto ON vuelo.id_aeropuerto_origen = aeropuerto.id_aeropuerto
 
-/*------------------------------------------------DISPARADORES------------------------------------------------------*/ 
-;
+/*------------------------------------------------FUNCIONES ALMACENADAS------------------------------------------------------*/ 
+DELIMITER $$
 
+CREATE FUNCTION obtenerTipoPasajero(IN p_idPasajero INT)
+BEGIN
+    DECLARE v_edad INT;
+    DECLARE p_tipo VARCHAR(20);
+    SELECT edad INTO v_edad FROM pasajero WHERE id_pasajero = p_idPasajero;
+
+    IF v_edad <= 5 THEN
+      SET p_tipo = 'Menor de Edad';
+    ELSEIF v_edad >= 65 THEN
+      SET p_tipo = 'Mayor de Edad';
+    ELSE
+      SET p_tipo = 'Normal';
+    END IF;
+    RETURN p_tipo;
+END $$
+DELIMITER ;
+
+DELIMITER $$
+CREATE FUNCTION obtener_descuento_boleto(IN idBoleto INT)
+BEGIN
+	
+	DECLARE b_tipoPasajero VARCHAR(20);
+	DECLARE nuevoPrecio DECIMAL;
+	DECLARE oldPrecio DECIMAL;
+   SELECT tipoPasajero INTO b_tipoPasajero FROM boleto WHERE id_boleto = idBoleto;
+   SELECT precio INTO oldPrecio FROM boleto WHERE id_boleto = idBoleto;
+	
+	IF b_tipoPasajero = 'Menor de Edad' THEN
+		SET nuevoPrecio = oldPrecio *0.8;
+	ELSEIF b_tipoPasajero = 'Mayor de Edad' THEN
+		SET nuevoPrecio = oldPrecio * 0.65;
+	ELSE
+		SET nuevoPrecio = oldPrecio;
+	END IF;
+	RETURN nuevoPrecio;
+END $$
+DELIMITER;
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
 /*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
