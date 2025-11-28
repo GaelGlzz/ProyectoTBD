@@ -320,6 +320,12 @@ END//
 DELIMITER ;
 SET SQL_MODE=@OLDTMP_SQL_MODE;
 
+DROP TABLE IF EXISTS `pasajero_con_equipaje`;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW  `pasajero_con_equipaje` AS SELECT p.id_pasajero, p.nombre, p.apellido, COUNT(e.id_equipaje) AS total_equipaje
+FROM pasajero p
+JOIN equipaje e ON p.id_pasajero = e.id_pasajero
+GROUP BY p.id_pasajero, p.nombre 
+
 -- Removing temporary table and create final VIEW structure
 DROP TABLE IF EXISTS `datos_pasajeros`;
 CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `datos_pasajeros` AS SELECT nombre, apellido, correo 
