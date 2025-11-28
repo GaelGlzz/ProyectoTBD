@@ -1,7 +1,7 @@
 import { customAlert, customConfirm } from './modalAlerts.js'; 
 let usuarioActual = null;
 const appContainer = document.getElementById('app-container');
-
+let vuelosCache = []; // Variable global para guardar los datos de los vuelos
 // =============== LOGIN ==================
 async function renderLogin() {
   appContainer.innerHTML = `
@@ -108,6 +108,7 @@ async function renderPage(page) {
           <td>${v.id_avion}</td>
           <td>${v.origen_ciudad} -> ${v.destino_ciudad}</td>
           <td>${new Date(v.hora_salida).toLocaleString()}</td>
+          <td>${new Date(v.hora_llegada).toLocaleString()}</td>
           <td>${v.estado}</td>
         </tr>
       `).join('');
@@ -121,7 +122,7 @@ async function renderPage(page) {
         </div> <br>
         <table class="table">
           <thead>
-            <tr><th>ID</th><th>Avion</th><th>Ruta</th><th>Salida</th><th>Estado</th></tr>
+            <tr><th>ID</th><th>Avion</th><th>Ruta</th><th>Salida</th><th>LLegada</th><th>Estado</th></tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
@@ -198,6 +199,7 @@ async function renderPage(page) {
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3>Gestión de Aviones</h3>
             <button class="btn btn-success" onclick="showRegistrarAvion()">+ Nuevo Avión</button>
+            <button class="btn btn-warning" onclick="showMantenimiento()">Mantenimiento</button>
         </div> <br>
         <table class="table">
           <thead>
@@ -339,7 +341,7 @@ window.showRegistrarVuelo = async () => {
             ${optionsAviones} 
         </select>
     </div>
-    
+
     <div class="form-group">
       <label>Origen (Último destino del avión)</label>
       <input type="text" id="v-origen-display" class="form-control" disabled>
@@ -348,7 +350,7 @@ window.showRegistrarVuelo = async () => {
     
     <div class="form-group"><label>Destino</label><select id="v-destino" class="form-control">${optionsAeropuertos}</select></div>
     
-    <div class="form-group"><label>Estado</label><select id="v-estado" class="form-control">
+    <div class="form-group"><label>Estado</label><select id="v-estado" class="form-control" disabled>
       <option>Programado</option><option>En Curso</option><option>Aterrizado</option><option>Cancelado</option>
     </select></div>
     <button class="btn btn-primary mt-2" onclick="submitVuelo()">Guardar</button>
@@ -444,11 +446,12 @@ window.submitVuelo = async () => {
 
 window.showModificarVuelo = async()=>{
   const vuelos = await window.api.getVuelos();
-  const vuelosActivos = vuelos.filter(v => v.estado !== 'Cancelado');
+  const vuelosActivos = vuelos.filter(v => v.estado !== 'Cancelado' && v.estado !== 'Aterrizado');
+  vuelosCache = vuelosActivos;
   const options = vuelosActivos.map(v => `<option value="${v.id_vuelo}">Id: ${v.id_vuelo} / Ruta: ${v.origen_ciudad} -> ${v.destino_ciudad} / Estado:(${v.estado})</option>`).join('');
 
   const html = `
-        <div class="form-group"><label>Vuelo</label><select id="v-vuelo" class="form-control">${options}</select></div>
+        <div class="form-group"><label>Vuelo</label><select id="v-vuelo" class="form-control" onchange="cargarDatosVueloModificar()"><option value="">-- Seleccione un vuelo --</option>${options}</select></div>
         <div class="form-group"><label>Salida</label><input type="datetime-local" id="v-salida" class="form-control"></div>
         <div class="form-group"><label>Llegada</label><input type="datetime-local" id="v-llegada" class="form-control"></div>
         <div class="form-group"><label>Estado</label><select id="v-estado" class="form-control">
@@ -457,6 +460,21 @@ window.showModificarVuelo = async()=>{
         <button class="btn btn-primary mt-2" onclick="modificarVuelo()">Modificar</button>
     `;
   showModal('Modificar Vuelo', html);
+  // Si hay vuelos cargar los datos del primer vuelo por defecto
+  if (vuelosActivos.length > 0) {
+        // Usamos setTimeout(0) para esperar al siguiente ciclo de renderizado del DOM
+        setTimeout(() => {
+             // 1. Asignar el valor del primer vuelo al selector
+             const selectorVuelo = document.getElementById('v-vuelo');
+             if (selectorVuelo) {
+                 selectorVuelo.value = vuelosActivos[0].id_vuelo;
+                 // 2. Ejecutar la función para cargar los datos
+                 cargarDatosVueloModificar();
+             } else {
+                 console.error("Error: El selector 'v-vuelo' no se encontró en el DOM.");
+             }
+        },200); 
+    }
 };
 
 window.modificarVuelo = async () => {
@@ -487,9 +505,86 @@ window.modificarVuelo = async () => {
   renderPage('vuelos');
 };
 
+window.cargarDatosVueloModificar = () => {
+    const idVuelo = document.getElementById('v-vuelo').value;
+
+
+    if (!idVuelo) {
+        // Limpiar campos si se selecciona la opción vacía
+        document.getElementById('v-salida').value = '';
+        document.getElementById('v-llegada').value = '';
+        document.getElementById('v-estado').value = 'Programado';
+        return;
+    }
+
+    // Buscar el vuelo seleccionado en la caché (vuelosCache debe ser global)
+    const vueloSeleccionado = vuelosCache.find(v => v.id_vuelo == idVuelo);
+
+    if (vueloSeleccionado) {
+        
+        // --- INICIO DE LA SOLUCIÓN MÁS ROBUSTA ---
+        const pad = (num) => (num < 10 ? '0' : '') + num;
+
+        const formatDateTime = (dateTimeString) => {
+            if (!dateTimeString || typeof dateTimeString !== 'object') {
+              console.log('falle')
+                return '';
+            }
+            
+            // 1. Inicializa el objeto Date
+            const date = new Date(dateTimeString);
+
+            if (isNaN(date.getTime())) {
+                console.error("Error: new Date() no pudo parsear la cadena:", dateTimeString);
+                return '';
+            }
+            
+            // 2. Extrae las partes locales de la fecha. 
+            // Esto utiliza la zona horaria que JS infirió del string (GMT-0600 en tu caso)
+            const year = date.getFullYear();
+            const month = pad(date.getMonth() + 1); 
+            const day = pad(date.getDate());
+            const hours = pad(date.getHours());
+            const minutes = pad(date.getMinutes());
+
+            // 3. Construye el string estricto requerido: YYYY-MM-DDThh:mm
+            const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
+            
+            console.log(`[DEBUG] Fecha formateada (Local): ${formattedDate}`);
+            
+            return formattedDate;
+        };
+        
+        const salidaInput = document.getElementById('v-salida');
+        const llegadaInput = document.getElementById('v-llegada');
+        
+        // Verificar si los elementos se encontraron antes de asignar
+        if (salidaInput && llegadaInput) {
+             const formattedSalida = formatDateTime(vueloSeleccionado.hora_salida);
+             const formattedLlegada = formatDateTime(vueloSeleccionado.hora_llegada);
+             salidaInput.value = formattedSalida;
+             llegadaInput.value = formattedLlegada;
+             
+             document.getElementById('v-estado').value = vueloSeleccionado.estado;
+        } else {
+             console.error("Error: Inputs 'v-salida' o 'v-llegada' no se encontraron en el DOM.");
+        }
+        
+        // (Opcional) Registro en consola para ver los datos cargados
+        console.log(`Datos cargados para Vuelo ID ${idVuelo}:`, {
+            salida: vueloSeleccionado.hora_salida,
+            llegada: vueloSeleccionado.hora_llegada,
+            estado: vueloSeleccionado.estado
+        });
+
+    } else {
+        console.error(`Error: Vuelo con ID ${idVuelo} no encontrado en caché.`);
+    }
+};
+
 window.showCancelarVuelo = async()=>{
   const vuelos = await window.api.getVuelos();
-  const vuelosActivos = vuelos.filter(v => v.estado !== 'Cancelado');
+  const vuelosActivos = vuelos.filter(v => v.estado == 'Programado');
   const options = vuelosActivos.map(v => `<option value="${v.id_vuelo}">Id: ${v.id_vuelo} / Ruta: ${v.origen_ciudad} -> ${v.destino_ciudad} / Estado:(${v.estado})</option>`).join('');
 
   const html = `
@@ -630,6 +725,57 @@ window.submitAvion = async () => {
   renderPage('aviones');
 };
 
+window.showMantenimiento = async()=>{
+  const aviones = await window.api.getAviones();
+  const avionesDisponibles = aviones.filter(a => a.estado !== 'En uso');
+  const options = avionesDisponibles.map(a => `<option value="${a.id_avion}">Id: ${a.id_avion} / Modelo:  ${a.modelo} / Aeroliniea:  ${a.aerolinea}</option>`).join('');
+
+  const html = `
+        <div class="form-group"><label>Vuelo</label><select id="a-avion" class="form-control">${options}</select></div>
+         <div class="form-group"><select id="a-estado" style="display: none"  class="form-control">
+            <option>En mantenimiento</option>
+        </select></div>
+        <div class="form-group"><select id="a-estado2" style="display: none"  class="form-control">
+            <option>En espera</option>
+        </select></div>
+        <button class="btn btn-primary mt-2" onclick="mantenimiento()">Poner en mantenimiento</button>
+        <button class="btn btn-primary mt-2" onclick="fueramantenimiento()">Sacar de mantenimiento</button>
+    `;
+  showModal('Mantenimiento de aviones', html);
+};
+
+window.mantenimiento = async () => {
+
+  const data = {
+    estado: document.getElementById('a-estado').value,
+    id_avion : document.getElementById('a-avion').value
+  };
+
+  if (!data.id_avion) {
+    customAlert('Elige un avion');
+    return;
+  }
+
+  await window.api.mantenimientoAvion(data);
+  closeModal();
+  renderPage('aviones');
+};
+window.fueramantenimiento = async () => {
+
+  const data = {
+    estado: document.getElementById('a-estado2').value,
+    id_avion : document.getElementById('a-avion').value
+  };
+
+  if (!data.id_avion) {
+    customAlert('Elige un avion');
+    return;
+  }
+
+  await window.api.mantenimientoAvion(data);
+  closeModal();
+  renderPage('aviones');
+};
 // ================= AEROPUERTO =================
 window.showRegistrarAeropuerto = () => {
   const html = `

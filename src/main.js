@@ -224,6 +224,15 @@ ipcMain.handle('registrarAvion', async (event, data) => {
   });
 });
 
+ipcMain.handle('mantenimientoAvion', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    db.query('UPDATE avion SET estado = ? WHERE id_avion = ?', [data.estado,data.id_avion], (err, res) => {
+      if (err) reject(err);
+      else resolve({message: 'Exito de operacion' });
+    });
+  });
+});
+
 ipcMain.handle('registrarEquipaje', async (event, data) => {
   return new Promise((resolve, reject) => {
     db.query('INSERT INTO equipaje SET ?', data, (err, res) => {
