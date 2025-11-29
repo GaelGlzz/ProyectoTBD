@@ -33,8 +33,13 @@ CREATE TABLE IF NOT EXISTS `aeropuerto` (
 
 -- Dumping data for table aerocontrol.aeropuerto: ~2 rows (approximately)
 REPLACE INTO `aeropuerto` (`id_aeropuerto`, `nombre`, `pais`, `estado`, `ciudad`) VALUES
-	(1, 'papa', 'papa', 'apap', 'appa'),
-	(2, 'asdas', 'asdasd', 'asd', 'asd');
+	(1, 'ketsakoatul', 'Mexico', 'Tamaulipas', 'Nuevo Laredo'),
+	(2, 'AIDMTR', 'Mexico', 'Nuevo Leon', 'Monterrey'),
+	(3, 'Aeropuerto de CELAYA', 'Mexico', 'Oneahuato', 'CELAYA'),
+	(4, 'Aeropuerto internacional de la ciudad de Mexico', 'Mexico', 'CDMX', 'CDMX'),
+	(5, 'Aeropuerto INT de Torreon', 'Mexico', 'Coahuila', 'TORREON'),
+	(6, 'Aeropuerto NOTNEMOS', 'Mexico', 'Estado de Mexico', 'CHIMALHUACAN'),
+	(7, 'Mangapius Flights', 'Mexico', 'Michoacan', 'TANGAMANDAPIO');
 
 -- Dumping structure for table aerocontrol.avion
 DROP TABLE IF EXISTS `avion`;
@@ -118,70 +123,6 @@ REPLACE INTO `equipaje` (`id_equipaje`, `id_pasajero`, `peso`, `estado`) VALUES
 	(9, 2, 41.00, 'Entregado'),
 	(10, 3, 123.00, 'Para recoger');
 
--- Dumping structure for function aerocontrol.obtenerTipoPasajero
--- 1. FUNCIÓN PARA OBTENER EL TIPO DE PASAJERO
-DELIMITER //
-DROP FUNCTION IF EXISTS obtenerTipoPasajero;
-CREATE FUNCTION obtenerTipoPasajero(
-    p_idPasajero INT
-) 
-RETURNS VARCHAR(20)
-READS SQL DATA -- Añadir READS SQL DATA es una buena práctica
-BEGIN
-    DECLARE v_edad INT;
-    DECLARE p_tipo VARCHAR(20);
-    
-    -- Obtener la edad del pasajero
-    SELECT edad INTO v_edad 
-    FROM pasajero 
-    WHERE id_pasajero = p_idPasajero;
-
-    -- Determinar el tipo de pasajero basado en la edad
-    IF v_edad <= 5 THEN
-      SET p_tipo = 'Menor de Edad';
-    ELSEIF v_edad >= 65 THEN
-      SET p_tipo = 'Mayor de Edad';
-    ELSE
-      SET p_tipo = 'Normal';
-    END IF;
-    
-    RETURN p_tipo;
-END//
-DELIMITER ;
-
--- Dumping structure for function aerocontrol.obtener_descuento_boleto
--- 2. FUNCIÓN PARA OBTENER EL PRECIO CON DESCUENTO
-DELIMITER //
-DROP FUNCTION IF EXISTS obtener_descuento_boleto;
-CREATE FUNCTION obtener_descuento_boleto(
-    idBoleto INT
-) 
-RETURNS DECIMAL(10, 2) -- Definir la precisión para DECIMAL
-READS SQL DATA
-BEGIN
-    
-    DECLARE b_tipoPasajero VARCHAR(20);
-    DECLARE nuevoPrecio DECIMAL(10, 2);
-    DECLARE oldPrecio DECIMAL(10, 2);
-    
-    -- Obtener tipoPasajero y precio original del boleto
-    SELECT tipoPasajero, precio 
-    INTO b_tipoPasajero, oldPrecio 
-    FROM boleto 
-    WHERE id_boleto = idBoleto;
-    
-    -- Aplicar el descuento según el tipo de pasajero
-    IF b_tipoPasajero = 'Menor de Edad' THEN
-      SET nuevoPrecio = oldPrecio * 0.80; -- 20% de descuento
-    ELSEIF b_tipoPasajero = 'Mayor de Edad' THEN
-      SET nuevoPrecio = oldPrecio * 0.65; -- 35% de descuento
-    ELSE
-      SET nuevoPrecio = oldPrecio; -- Sin descuento
-    END IF;
-    
-    RETURN nuevoPrecio;
-END//
-DELIMITER ;
 
 -- Dumping structure for table aerocontrol.pasajero
 DROP TABLE IF EXISTS `pasajero`;
@@ -626,6 +567,75 @@ GROUP BY p.id_pasajero, p.nombre
 DROP TABLE IF EXISTS `vuelos_a_abordar`;
 CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `vuelos_a_abordar` AS SELECT hora_salida,vuelo.id_avion,aeropuerto.nombre,vuelo.estado
 FROM vuelo INNER JOIN aeropuerto ON vuelo.id_aeropuerto_origen = aeropuerto.id_aeropuerto;
+
+-- Dumping structure for function aerocontrol.obtenerTipoPasajero
+-- 1. FUNCIÓN PARA OBTENER EL TIPO DE PASAJERO
+DELIMITER //
+DROP FUNCTION IF EXISTS obtenerTipoPasajero;
+CREATE FUNCTION obtenerTipoPasajero(
+    p_idPasajero INT
+) 
+RETURNS VARCHAR(20)
+READS SQL DATA -- Añadir READS SQL DATA es una buena práctica
+BEGIN
+    DECLARE v_edad INT;
+    DECLARE p_tipo VARCHAR(20);
+    
+    -- Obtener la edad del pasajero
+    SELECT edad INTO v_edad 
+    FROM pasajero 
+    WHERE id_pasajero = p_idPasajero;
+
+    -- Determinar el tipo de pasajero basado en la edad
+    IF v_edad <= 5 THEN
+      SET p_tipo = 'Menor de Edad';
+    ELSEIF v_edad >= 65 THEN
+      SET p_tipo = 'Mayor de Edad';
+    ELSE
+      SET p_tipo = 'Normal';
+    END IF;
+    
+    RETURN p_tipo;
+END//
+DELIMITER ;
+
+-- Dumping structure for function aerocontrol.obtener_descuento_boleto
+-- 2. FUNCIÓN PARA OBTENER EL PRECIO CON DESCUENTO
+DELIMITER //
+DROP FUNCTION IF EXISTS obtener_descuento_boleto;
+CREATE FUNCTION obtener_descuento_boleto(
+    idBoleto INT
+) 
+RETURNS DECIMAL(10, 2) -- Definir la precisión para DECIMAL
+READS SQL DATA
+BEGIN
+    DECLARE b_tipoPasajero VARCHAR(20);
+    DECLARE nuevoPrecio DECIMAL(10, 2);
+    DECLARE oldPrecio DECIMAL(10, 2);
+    
+    -- Obtener tipoPasajero y precio original del boleto    
+    SELECT tipoPasajero 
+    INTO b_tipoPasajero
+    FROM boleto 
+    WHERE id_boleto = idBoleto;
+    
+    SELECT precio
+    INTO  oldPrecio
+    FROM vuelo
+    WHERE id_vuelo = idVuelo;
+    
+    -- Aplicar el descuento según el tipo de pasajero
+    IF b_tipoPasajero = 'Menor de Edad' THEN
+      SET nuevoPrecio = oldPrecio * 0.80; -- 20% de descuento
+    ELSEIF b_tipoPasajero = 'Mayor de Edad' THEN
+      SET nuevoPrecio = oldPrecio * 0.65; -- 35% de descuento
+    ELSE
+      SET nuevoPrecio = oldPrecio; -- Sin descuento
+    END IF;
+    
+    RETURN nuevoPrecio;
+END//
+DELIMITER ;
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
 /*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
