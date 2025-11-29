@@ -1,7 +1,19 @@
 import { customAlert, customConfirmAsync } from './modalAlerts.js'; 
 let usuarioActual = null;
 const appContainer = document.getElementById('app-container');
-let vuelosCache = []; // Variable global para guardar los datos de los vuelos
+let vuelosCache = []; //Variable global para almacenar vuelos
+
+window.hasPermission = (requiredRoles) => {
+    if (!window.userRole) return false;
+     return requiredRoles.includes(window.userRole);
+};
+
+window.getActionButton = (requiredRoles, buttonHtml) => {
+    if (window.hasPermission(requiredRoles)) {
+      return buttonHtml;
+    }
+    return ''; 
+};
 // =============== LOGIN ==================
 async function renderLogin() {
   appContainer.innerHTML = `
@@ -27,17 +39,35 @@ async function renderLogin() {
     </div>
   `;
 
-  document.getElementById('login-form').addEventListener('submit', async (e) => {
+  /** Verifica si el usuario actual tiene permisos para una acción. */
+window.hasPermission = (requiredRoles) => {
+    // Si el rol del usuario no está definido, o el array de roles requeridos no incluye 
+    // el rol del usuario, devuelve false.
+    if (!window.userRole) return false;
+    return requiredRoles.includes(window.userRole);
+};
+
+/** Función para obtener el HTML de un botón solo si el usuario tiene permisos. */
+window.getActionButton = (requiredRoles, buttonHtml) => {
+    if (window.hasPermission(requiredRoles)) {
+        return buttonHtml;
+    }
+    return ''; // Retorna una cadena vacía (oculta el botón)
+};
+
+document.getElementById('login-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('username').value;
     const password = document.getElementById('password').value;
     const errorDiv = document.getElementById('login-error');
 
     try {
-      const result = await window.api.login(username, password);
-      if (result.success) {
+       const result = await window.api.login(username, password);
+       if (result.success) {
         usuarioActual = result.user;
-        renderDashboard();
+        // PASO CLAVE 3B: Asignar el rol globalmente
+        window.userRole = result.rol; 
+        renderDashboard();  
       } else {
         errorDiv.textContent = result.message;
         errorDiv.style.display = 'block';
@@ -114,13 +144,13 @@ async function renderPage(page) {
         </tr>
       `).join('');
 
-      content.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3>Control de Vuelos</h3>
-            <button class="btn btn-success" onclick="showRegistrarVuelo()">+ Nuevo Vuelo</button>
-            <button class="btn btn-warning" onclick="showModificarVuelo()">! Modificar Vuelo</button>
-            <button class="btn btn-danger" onclick="showCancelarVuelo()">! Cancelar Vuelo</button>
-        </div> <br>
+    content.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+           <h3>Control de Vuelos</h3>
+           ${window.getActionButton(['administrador', 'general'], '<button class="btn btn-success" onclick="showRegistrarVuelo()">+ Nuevo Vuelo</button>')}
+           ${window.getActionButton(['administrador', 'general'], '<button class="btn btn-warning" onclick="showModificarVuelo()">! Modificar Vuelo</button>')}
+           ${window.getActionButton(['administrador'], '<button class="btn btn-danger" onclick="showCancelarVuelo()">! Cancelar Vuelo</button>')}
+           </div> <br> 
         <table class="table">
           <thead>
             <tr><th>ID</th><th>Avion</th><th>Ruta</th><th>Salida</th><th>LLegada</th><th>Precio</th><th>Estado</th></tr>
@@ -138,16 +168,19 @@ async function renderPage(page) {
           <td>${p.nacionalidad}</td>
           <td>${p.correo}</td>
           <td>
-            <button class="btn btn-sm btn-info" onclick="verHistorial(${p.id_pasajero})">Historial</button>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3>Gestión de Pasajeros</h3>
+             ${window.getActionButton(['administrador', 'general'], '<button class="btn btn-success" onclick="showRegistrarPasajero()">+ Nuevo Pasajero</button>')}
+          </div> <br>
           </td>
         </tr>
       `).join('');
 
-      content.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center;">
+    content.innerHTML = `
+         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3>Gestión de Pasajeros</h3>
-            <button class="btn btn-success" onclick="showRegistrarPasajero()">+ Nuevo Pasajero</button>
-        </div> <br>
+            ${window.getActionButton(['administrador', 'general'], '<button class="btn btn-success" onclick="showRegistrarPasajero()">+ Nuevo Pasajero</button>')}
+         </div> <br>
         <table class="table">
           <thead>
             <tr><th>ID</th><th>Nombre</th><th>Edad</th><th>Nacionalidad</th><th>Correo</th><th>Acciones</th></tr>
@@ -168,10 +201,11 @@ async function renderPage(page) {
           <td>${b.precio}</td>
           <td>${b.asiento}</td>
           <td>${b.terminal}</td>
-          <td>
-            <button class="btn btn-sm btn-primary" onclick="realizarCheckIn(${b.id_boleto})">Check-in</button>
-            <button class="btn btn-sm btn-secondary" onclick="cancelarBoleto(${b.id_boleto})">Cancelar</button>
-          </td>
+           <td>
+            ${window.getActionButton(['administrador', 'general'], 
+               `<button class="btn btn-sm btn-primary" onclick="realizarCheckIn(${b.id_boleto})">Check-in</button>`)}
+            ${window.getActionButton(['administrador', 'general'], 
+               `<button class="btn btn-sm btn-secondary" onclick="cancelarBoleto(${b.id_boleto})">Cancelar</button>`)}
         </tr>
       `).join('');
 
@@ -220,8 +254,10 @@ async function renderPage(page) {
       content.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3>Gestión de Aviones</h3>
-            <button class="btn btn-success" onclick="showRegistrarAvion()">+ Nuevo Avión</button>
-            <button class="btn btn-warning" onclick="showMantenimiento()">Mantenimiento</button>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3>Gestión de Aviones</h3>
+            ${window.getActionButton(['administrador'], '<button class="btn btn-success" onclick="showRegistrarAvion()">+ Nuevo Avión</button>')}
+            ${window.getActionButton(['administrador'], '<button class="btn btn-warning" onclick="showMantenimiento()">Mantenimiento</button>')}
         </div> <br>
         <table class="table">
           <thead>
@@ -244,8 +280,8 @@ async function renderPage(page) {
       content.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3>Administración de Aeropuertos</h3>
-            <button class="btn btn-success" onclick="showRegistrarAeropuerto()">+ Nuevo Aeropuerto</button>
-        </div> <br>
+            ${window.getActionButton(['administrador'], '<button class="btn btn-success" onclick="showRegistrarAeropuerto()">+ Nuevo Aeropuerto</button>')}
+         </div> <br>
         <table class="table">
           <thead>
             <tr><th>ID</th><th>Nombre</th><th>País</th><th>Ciudad</th></tr>
@@ -257,6 +293,10 @@ async function renderPage(page) {
       const pasajeros = await window.api.getPasajerosEquipaje();
       const equipajes = await window.api.getEquipaje();
       let rows2 = pasajeros.map(p => `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+           <h3>Administración de Equipaje </h3>
+            ${window.getActionButton(['administrador', 'general'], '<button class="btn btn-success" onclick="showRegistrarEquipaje()">+ Nuevo Equipaje</button>')}
+         </div> <br>
         <tr class="clickable-row" onclick="mostrarEquipajePorPasajero(${p.id_pasajero}); mostrarEquipajeEntregadoExtraviado(${p.id_pasajero})">
           <td>${p.id_pasajero}</td>
           <td>${p.nombre} ${p.apellido}</td>
@@ -264,9 +304,8 @@ async function renderPage(page) {
         </tr>
       `).join('');  
 
-    // **CAMBIO CLAVE: Inicializa rows (la tabla de equipaje) vacía**
-    // O con un mensaje que pide seleccionar un pasajero:
-    let rowsEquipajeInicial = `<tr><td colspan="4" class="text-center">Seleccione un pasajero para ver su equipaje.</td></tr>`;
+
+   let rowsEquipajeInicial = `<tr><td colspan="4" class="text-center">Seleccione un pasajero para ver su equipaje.</td></tr>`;
     let rowsEquipajeEntregadoExtraviado = `<tr><td colspan="4" class="text-center">Seleccione un pasajero para ver su equipaje.</td></tr>`;
 
     // Almacenar los datos globales (si no están ya disponibles)
