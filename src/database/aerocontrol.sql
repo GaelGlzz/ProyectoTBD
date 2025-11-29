@@ -41,7 +41,6 @@ CREATE TABLE IF NOT EXISTS `avion` (
   `capacidad_pasajeros` int(11) DEFAULT NULL,
   `aerolinea` varchar(100) DEFAULT NULL,
   `pesoCargaMaximo` bigint(20) NOT NULL,
-  `estado` varchar(30) DEFAULT 'En Uso'
   `CargaActual` bigint(20) DEFAULT 0,
   `id_ultimoAeropuerto` int(11) DEFAULT 1,
   `ultima_hora_llegada` datetime DEFAULT current_timestamp(),
@@ -150,6 +149,7 @@ CREATE TABLE IF NOT EXISTS `vuelo` (
   `id_aeropuerto_origen` int(11) DEFAULT NULL,
   `id_aeropuerto_destino` int(11) DEFAULT NULL,
   `id_avion` int(11) DEFAULT NULL,
+  `precio` DECIMAL NOT NULL,
   `estado` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id_vuelo`),
   KEY `id_aeropuerto_origen` (`id_aeropuerto_origen`),
@@ -320,6 +320,12 @@ END//
 DELIMITER ;
 SET SQL_MODE=@OLDTMP_SQL_MODE;
 
+DROP TABLE IF EXISTS `pasajero_con_equipaje`;
+CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW  `pasajero_con_equipaje` AS SELECT p.id_pasajero, p.nombre, p.apellido, COUNT(e.id_equipaje) AS total_equipaje
+FROM pasajero p
+JOIN equipaje e ON p.id_pasajero = e.id_pasajero
+GROUP BY p.id_pasajero, p.nombre;
+
 -- Removing temporary table and create final VIEW structure
 DROP TABLE IF EXISTS `datos_pasajeros`;
 CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `datos_pasajeros` AS SELECT nombre, apellido, correo 
@@ -329,17 +335,28 @@ FROM pasajero
 -- Removing temporary table and create final VIEW structure
 DROP TABLE IF EXISTS `vuelos_a_abordar`;
 CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `vuelos_a_abordar` AS SELECT hora_salida,vuelo.id_avion,aeropuerto.nombre,vuelo.estado
-FROM vuelo INNER JOIN aeropuerto ON vuelo.id_aeropuerto_origen = aeropuerto.id_aeropuerto
+FROM vuelo INNER JOIN aeropuerto ON vuelo.id_aeropuerto_origen = aeropuerto.id_aeropuerto;
 
 /*------------------------------------------------FUNCIONES ALMACENADAS------------------------------------------------------*/ 
 DELIMITER $$
 
-CREATE FUNCTION obtenerTipoPasajero(IN p_idPasajero INT)
+-- 1. FUNCIÓN PARA OBTENER EL TIPO DE PASAJERO
+DROP FUNCTION IF EXISTS obtenerTipoPasajero;
+CREATE FUNCTION obtenerTipoPasajero(
+    p_idPasajero INT
+) 
+RETURNS VARCHAR(20)
+READS SQL DATA -- Añadir READS SQL DATA es una buena práctica
 BEGIN
     DECLARE v_edad INT;
     DECLARE p_tipo VARCHAR(20);
-    SELECT edad INTO v_edad FROM pasajero WHERE id_pasajero = p_idPasajero;
+    
+    -- Obtener la edad del pasajero
+    SELECT edad INTO v_edad 
+    FROM pasajero 
+    WHERE id_pasajero = p_idPasajero;
 
+    -- Determinar el tipo de pasajero basado en la edad
     IF v_edad <= 5 THEN
       SET p_tipo = 'Menor de Edad';
     ELSEIF v_edad >= 65 THEN
@@ -347,30 +364,48 @@ BEGIN
     ELSE
       SET p_tipo = 'Normal';
     END IF;
+    
     RETURN p_tipo;
 END $$
-DELIMITER ;
 
-DELIMITER $$
-CREATE FUNCTION obtener_descuento_boleto(IN idBoleto INT)
+-- 2. FUNCIÓN PARA OBTENER EL PRECIO CON DESCUENTO
+DROP FUNCTION IF EXISTS obtener_descuento_boleto;
+CREATE FUNCTION obtener_descuento_boleto(
+    idBoleto INT,
+    idVuelo INT
+) 
+RETURNS DECIMAL(10, 2) -- Definir la precisión para DECIMAL
+READS SQL DATA
 BEGIN
-	
-	DECLARE b_tipoPasajero VARCHAR(20);
-	DECLARE nuevoPrecio DECIMAL;
-	DECLARE oldPrecio DECIMAL;
-   SELECT tipoPasajero INTO b_tipoPasajero FROM boleto WHERE id_boleto = idBoleto;
-   SELECT precio INTO oldPrecio FROM boleto WHERE id_boleto = idBoleto;
-	
-	IF b_tipoPasajero = 'Menor de Edad' THEN
-		SET nuevoPrecio = oldPrecio *0.8;
-	ELSEIF b_tipoPasajero = 'Mayor de Edad' THEN
-		SET nuevoPrecio = oldPrecio * 0.65;
-	ELSE
-		SET nuevoPrecio = oldPrecio;
-	END IF;
-	RETURN nuevoPrecio;
+    
+    DECLARE b_tipoPasajero VARCHAR(20);
+    DECLARE nuevoPrecio DECIMAL(10, 2);
+    DECLARE oldPrecio DECIMAL(10, 2);
+    
+    -- Obtener tipoPasajero y precio original del boleto    
+    SELECT tipoPasajero 
+    INTO b_tipoPasajero
+    FROM boleto 
+    WHERE id_boleto = idBoleto;
+    
+    SELECT precio
+    INTO  oldPrecio
+    FROM vuelo
+    WHERE id_vuelo = idVuelo;
+    
+    -- Aplicar el descuento según el tipo de pasajero
+    IF b_tipoPasajero = 'Menor de Edad' THEN
+      SET nuevoPrecio = oldPrecio * 0.80; -- 20% de descuento
+    ELSEIF b_tipoPasajero = 'Mayor de Edad' THEN
+      SET nuevoPrecio = oldPrecio * 0.65; -- 35% de descuento
+    ELSE
+      SET nuevoPrecio = oldPrecio; -- Sin descuento
+    END IF;
+    
+    RETURN nuevoPrecio;
 END $$
-DELIMITER;
+
+DELIMITER ; -- Comando DELIMITER restablecido a ;
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
 /*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;

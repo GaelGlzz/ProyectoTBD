@@ -109,6 +109,7 @@ async function renderPage(page) {
           <td>${v.origen_ciudad} -> ${v.destino_ciudad}</td>
           <td>${new Date(v.hora_salida).toLocaleString()}</td>
           <td>${new Date(v.hora_llegada).toLocaleString()}</td>
+          <td>$${v.precio}</td>
           <td>${v.estado}</td>
         </tr>
       `).join('');
@@ -122,7 +123,7 @@ async function renderPage(page) {
         </div> <br>
         <table class="table">
           <thead>
-            <tr><th>ID</th><th>Avion</th><th>Ruta</th><th>Salida</th><th>LLegada</th><th>Estado</th></tr>
+            <tr><th>ID</th><th>Avion</th><th>Ruta</th><th>Salida</th><th>LLegada</th><th>Precio</th><th>Estado</th></tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
@@ -161,6 +162,8 @@ async function renderPage(page) {
           <td>${b.id_boleto}</td>
           <td>${b.nombre} ${b.apellido}</td>
           <td>${b.origen} -> ${b.destino}</td>
+          <td>${b.tipoPasajero}</td>
+          <td>${b.precio}</td>
           <td>${b.asiento}</td>
           <td>${b.terminal}</td>
           <td>
@@ -176,7 +179,7 @@ async function renderPage(page) {
         </div> <br>
         <table class="table">
           <thead>
-            <tr><th>ID</th><th>Pasajero</th><th>Vuelo</th><th>Asiento</th><th>Terminal</th><th>Acciones</th></tr>
+            <tr><th>ID</th><th>Pasajero</th><th>Vuelo</th><th>Tipo de Pasajero</th><th>Precio</th><th>Asiento</th><th>Terminal</th><th>Acciones</th></tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
@@ -350,6 +353,8 @@ window.showRegistrarVuelo = async () => {
     
     <div class="form-group"><label>Destino</label><select id="v-destino" class="form-control">${optionsAeropuertos}</select></div>
     
+    <div class="form-group"><label>Precio del Vuelo($)</label><input id="v-precio" class="form-control" type="number"></div>
+
     <div class="form-group"><label>Estado</label><select id="v-estado" class="form-control" disabled>
       <option>Programado</option><option>En Curso</option><option>Aterrizado</option><option>Cancelado</option>
     </select></div>
@@ -405,6 +410,7 @@ window.submitVuelo = async () => {
         hora_llegada: document.getElementById('v-llegada').value,
         id_aeropuerto_origen: document.getElementById('v-origen-value').value,
         id_aeropuerto_destino: document.getElementById('v-destino').value,
+        precio: document.getElementById('v-precio').value,
         estado: document.getElementById('v-estado').value
     };
 
@@ -423,6 +429,17 @@ window.submitVuelo = async () => {
         customAlert('La hora de llegada debe ser posterior a la hora de salida');
         return;
     }
+    
+    if(!data.precio){
+      customAlert('Favor de Introducir el Precio del Vuelo');
+      return;
+    }
+
+    if(data.precio <=0){
+      customAlert('El precio del vuelo debe ser mayor que 0');
+      return;
+    }
+
     try {
         await window.api.registrarVuelo(data);
         customAlert('Vuelo registrado correctamente.');
@@ -619,12 +636,11 @@ window.showEmitirBoleto = async () => {
   const vuelos = await window.api.getVuelos();
 
   const pOptions = pasajeros.map(p => `<option value="${p.id_pasajero}">${p.nombre} ${p.apellido}</option>`).join('');
-  const vOptions = vuelos.map(v => `<option value="${v.id_vuelo}">${v.origen_ciudad} -> ${v.destino_ciudad} (${new Date(v.hora_salida).toLocaleDateString()})</option>`).join('');
+  const vOptions = vuelos.map(v => `<option value="${v.id_vuelo}">${v.origen_ciudad} -> ${v.destino_ciudad} (${new Date(v.hora_salida).toLocaleDateString()}) ($${v.precio})</option>`).join('');
 
   const html = `
         <div class="form-group"><label>Pasajero</label><select id="b-pasajero" class="form-control">${pOptions}</select></div>
         <div class="form-group"><label>Vuelo</label><select id="b-vuelo" class="form-control">${vOptions}</select></div>
-        <div class="form-group"><label>Precio</label><input type="number" id="b-precio" class="form-control"></div>
         <div class="form-group"><label>Terminal</label><input id="b-terminal" class="form-control"></div>
         <div class="form-group"><label>Asiento</label><input id="b-asiento" class="form-control"></div>
         <button class="btn btn-primary mt-2" onclick="submitBoleto()">Emitir</button>
@@ -636,20 +652,15 @@ window.submitBoleto = async () => {
   const data = {
     id_pasajero: document.getElementById('b-pasajero').value,
     id_vuelo: document.getElementById('b-vuelo').value,
-    precio: document.getElementById('b-precio').value,
     terminal: document.getElementById('b-terminal').value.trim(),
     asiento: document.getElementById('b-asiento').value.trim()
   };
 
-  if (!data.id_pasajero || !data.id_vuelo || !data.precio || !data.terminal || !data.asiento) {
+  if (!data.id_pasajero || !data.id_vuelo || !data.terminal || !data.asiento) {
     customAlert('Por favor, complete todos los campos');
     return;
   }
 
-  if (parseFloat(data.precio) <= 0) {
-    customAlert('El precio debe ser mayor a 0');
-    return;
-  }
   await window.api.emitirBoleto(data);
 
   await window.api.obtenertipoPasajero();

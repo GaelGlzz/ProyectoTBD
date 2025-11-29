@@ -276,9 +276,10 @@ ipcMain.handle('obtenertipoPasajero', async () => {
     const sql=`
         SET @Id_boleto = (SELECT MAX(id_boleto) FROM boleto);
         SET @Id_pasajero = (SELECT id_pasajero FROM boleto WHERE id_boleto = @Id_boleto);
+        SET @Id_vuelo = (SELECT id_vuelo FROM boleto WHERE id_boleto = @Id_boleto);
         SET @b= obtenerTipoPasajero(@Id_pasajero);
         UPDATE boleto SET tipoPasajero = @b WHERE id_boleto = @Id_boleto;
-        SET @precio = obtener_descuento_boleto(@Id_boleto);
+        SET @precio = obtener_descuento_boleto(@Id_boleto,@Id_vuelo);
         UPDATE boleto SET precio = @precio WHERE id_boleto = @Id_boleto
         `;
     db.query(sql, (err, res) => {
