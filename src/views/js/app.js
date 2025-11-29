@@ -1,4 +1,4 @@
-import { customAlert, customConfirmAsync } from './modalAlerts.js'; 
+import { customAlert, customConfirmAsync } from './modalAlerts.js';
 let usuarioActual = null;
 const appContainer = document.getElementById('app-container');
 let vuelosCache = []; // Variable global para guardar los datos de los vuelos
@@ -59,6 +59,7 @@ function renderDashboard() {
       <a href="#" class="nav-link" data-page="boletos">Manejo de Boletos</a> <br>
       <a href="#" class="nav-link" data-page="aviones">Gestión de Aviones</a> <br>
       <a href="#" class="nav-link" data-page="aeropuertos">Admin. Aeropuertos</a> <br>
+      <a href="#" class="nav-link" data-page="reportes">Generar Reportes</a> <br>
       <a href="#" class="nav-link" id="logout-btn" style="color:red;">Cerrar Sesión</a> <br>
   `;
 
@@ -241,7 +242,7 @@ async function renderPage(page) {
           <td>${a.ciudad}</td>
         </tr>
       `).join('');
-//<button class="btn btn-success" onclick="showRegistrarAeropuerto()">+ Nuevo Aeropuerto</button> //
+      //<button class="btn btn-success" onclick="showRegistrarAeropuerto()">+ Nuevo Aeropuerto</button> //
       content.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3>Administración de Aeropuertos</h3>
@@ -254,7 +255,7 @@ async function renderPage(page) {
           <tbody>${rows}</tbody>
         </table>
       `;
-    }else if(page=='equipaje'){
+    } else if (page == 'equipaje') {
       const pasajeros = await window.api.getPasajerosEquipaje();
       const equipajes = await window.api.getEquipaje();
       let rows2 = pasajeros.map(p => `
@@ -263,18 +264,18 @@ async function renderPage(page) {
           <td>${p.nombre} ${p.apellido}</td>
           <td>${p.total_equipaje}</td>
         </tr>
-      `).join('');  
+      `).join('');
 
-    // **CAMBIO CLAVE: Inicializa rows (la tabla de equipaje) vacía**
-    // O con un mensaje que pide seleccionar un pasajero:
-    let rowsEquipajeInicial = `<tr><td colspan="4" class="text-center">Seleccione un pasajero para ver su equipaje.</td></tr>`;
-    let rowsEquipajeEntregadoExtraviado = `<tr><td colspan="4" class="text-center">Seleccione un pasajero para ver su equipaje.</td></tr>`;
+      // **CAMBIO CLAVE: Inicializa rows (la tabla de equipaje) vacía**
+      // O con un mensaje que pide seleccionar un pasajero:
+      let rowsEquipajeInicial = `<tr><td colspan="4" class="text-center">Seleccione un pasajero para ver su equipaje.</td></tr>`;
+      let rowsEquipajeEntregadoExtraviado = `<tr><td colspan="4" class="text-center">Seleccione un pasajero para ver su equipaje.</td></tr>`;
 
-    // Almacenar los datos globales (si no están ya disponibles)
-    window.equipajesCache = equipajes;
-    window.equipajesCache2 = equipajes;
+      // Almacenar los datos globales (si no están ya disponibles)
+      window.equipajesCache = equipajes;
+      window.equipajesCache2 = equipajes;
 
-    content.innerHTML = `
+      content.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3>Administración de Equipaje </h3>
             <button class="btn btn-success" onclick="showRegistrarEquipaje()">+ Nuevo Equipaje</button>
@@ -294,8 +295,48 @@ async function renderPage(page) {
             <tr><th>Id Equipaje</th><th>Id Pasajero</th><th>Peso en Kg</th><th>Estado Actual</th><th>Acciones</th></tr>
           </thead>
           <tbody id="equipaje-body2">${rowsEquipajeEntregadoExtraviado}</tbody>         </table>
-      `;
+      `;
     }
+    else if (page === 'reportes') {
+      const aeropuertos = await window.api.getAeropuertos();
+      const aviones = await window.api.getAviones();
+
+      const aeropuertosOptions = aeropuertos.map(a => `<option value="${a.id_aeropuerto}">${a.nombre} - ${a.ciudad}</option>`).join('');
+      const avionesOptions = aviones.map(a => `<option value="${a.id_avion}">${a.modelo} (${a.aerolinea})</option>`).join('');
+
+      content.innerHTML = `
+        <h3>Generar Reportes</h3>
+        <div class="row">
+          <div class="col-md-6">
+            <div class="card p-3">
+              <h5>Reporte de Vuelos por Aeropuerto</h5>
+              <div class="form-group">
+                <label>Seleccionar Aeropuerto:</label>
+                <select id="reporte-aeropuerto" class="form-control">
+                  <option value="">-- Seleccione --</option>
+                  ${aeropuertosOptions}
+                </select>
+              </div>
+              <button class="btn btn-primary" onclick="generarReporteAeropuerto()">Generar PDF</button>
+            </div>
+          </div>
+          <div class="col-md-6">
+            <div class="card p-3">
+              <h5>Reporte de Boletos por Avión</h5>
+              <div class="form-group">
+                <label>Seleccionar Avión:</label>
+                <select id="reporte-avion" class="form-control">
+                  <option value="">-- Seleccione --</option>
+                  ${avionesOptions}
+                </select>
+              </div>
+              <button class="btn btn-primary" onclick="generarReporteAvion()">Generar PDF</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
   } catch (error) {
     console.error(error);
     content.innerHTML = `<p class="alert alert-danger">Error: ${error.message}</p>`;
@@ -306,14 +347,14 @@ async function renderPage(page) {
 // ================= PASAJEROS =================
 window.showRegistrarPasajero = () => {
   const nacionalidades = [
-    "Mexicana","Afgana","Albana","Alemana","Argelina","Argentina","Armenia","Australiana","Austriaca","Azerbaiyana","Bahameña","Bahreiní","Bangladesí","Barbadense","Belga","Beliceña","Beninesa","Bielorrusa","Boliviana","Bosnia","Botswanesa","Brasileña","Británica","Bruneana","Búlgara","Burkinesa",
-    "Burundesa","Caboverdiana","Camboyana","Camerunesa","Canadiense","Catarí","Centrafricana","Checa","Chilena","China","Chipriota","Colombiana","Comorense","Congoleña","Costarricense","Croata","Cubana","Danesa","Dominicana",
-    "Ecuatoriana","Egipcia","Salvadoreña","Emiratí","Eslovaca","Eslovena","Española","Estadounidense","Estonia","Etíope","Filipina","Finlandesa","Francesa","Gabonesa","Galesa","Gambiana","Georgiana","Ghanesa","Griega","Guatemalteca","Guineana",
-    "Guyanesa","Haitiana","Hondureña","Húngara","India","Indonesa","Iraní","Iraquí","Irlandesa","Islandesa","Israelí","Italiana","Jamaiquina","Japonesa","Jordana","Kazaja","Keniana","Kirguisa","Kuwaití","Laosiana","Letona","Libanesa","Liberiana",
-    "Libia","Lituana","Luxemburguesa","Macedonia","Malaya","Malaui","Maldiva","Maliense","Maltesa","Marfileña","Marroquí","Moldava","Monegasca","Mongola","Mozambiqueña","Namibia","Neozelandesa","Nepalí","Nicaragüense","Nigeriana","Norcoreana","Noruega","Omaní","Pakistaní","Palestina","Panameña","Paraguaya","Peruana","Polaca","Portuguesa","Puertorriqueña","Qatarí","Reino Unido","Ruandesa","Rumana","Rusa","Saharaui","Samoana","Saudí","Senegalesa","Serbia","Singapurense","Siria","Somalí","Sudafricana","Sudanesa","Sueca","Suiza","Surcoreana","Tailandesa","Tanzana","Tayika","Tunecina","Turca","Turcomana","Ucraniana","Ugandesa","Uruguaya","Uzbeca","Venezolana","Vietnamita","Yemení","Zambiana","Zimbabuense"
+    "Mexicana", "Afgana", "Albana", "Alemana", "Argelina", "Argentina", "Armenia", "Australiana", "Austriaca", "Azerbaiyana", "Bahameña", "Bahreiní", "Bangladesí", "Barbadense", "Belga", "Beliceña", "Beninesa", "Bielorrusa", "Boliviana", "Bosnia", "Botswanesa", "Brasileña", "Británica", "Bruneana", "Búlgara", "Burkinesa",
+    "Burundesa", "Caboverdiana", "Camboyana", "Camerunesa", "Canadiense", "Catarí", "Centrafricana", "Checa", "Chilena", "China", "Chipriota", "Colombiana", "Comorense", "Congoleña", "Costarricense", "Croata", "Cubana", "Danesa", "Dominicana",
+    "Ecuatoriana", "Egipcia", "Salvadoreña", "Emiratí", "Eslovaca", "Eslovena", "Española", "Estadounidense", "Estonia", "Etíope", "Filipina", "Finlandesa", "Francesa", "Gabonesa", "Galesa", "Gambiana", "Georgiana", "Ghanesa", "Griega", "Guatemalteca", "Guineana",
+    "Guyanesa", "Haitiana", "Hondureña", "Húngara", "India", "Indonesa", "Iraní", "Iraquí", "Irlandesa", "Islandesa", "Israelí", "Italiana", "Jamaiquina", "Japonesa", "Jordana", "Kazaja", "Keniana", "Kirguisa", "Kuwaití", "Laosiana", "Letona", "Libanesa", "Liberiana",
+    "Libia", "Lituana", "Luxemburguesa", "Macedonia", "Malaya", "Malaui", "Maldiva", "Maliense", "Maltesa", "Marfileña", "Marroquí", "Moldava", "Monegasca", "Mongola", "Mozambiqueña", "Namibia", "Neozelandesa", "Nepalí", "Nicaragüense", "Nigeriana", "Norcoreana", "Noruega", "Omaní", "Pakistaní", "Palestina", "Panameña", "Paraguaya", "Peruana", "Polaca", "Portuguesa", "Puertorriqueña", "Qatarí", "Reino Unido", "Ruandesa", "Rumana", "Rusa", "Saharaui", "Samoana", "Saudí", "Senegalesa", "Serbia", "Singapurense", "Siria", "Somalí", "Sudafricana", "Sudanesa", "Sueca", "Suiza", "Surcoreana", "Tailandesa", "Tanzana", "Tayika", "Tunecina", "Turca", "Turcomana", "Ucraniana", "Ugandesa", "Uruguaya", "Uzbeca", "Venezolana", "Vietnamita", "Yemení", "Zambiana", "Zimbabuense"
   ];
 
-  const options=nacionalidades.map(n=>`<option value ="${n}">${n}</option>`).join("");
+  const options = nacionalidades.map(n => `<option value ="${n}">${n}</option>`).join("");
 
   const html = `
         <div class="form-group"><label>Nombre</label><input id="p-nombre" class="form-control"></div>
@@ -337,7 +378,7 @@ window.submitPasajero = async () => {
     nombre: document.getElementById('p-nombre').value.trim(),
     apellido: document.getElementById('p-apellido').value.trim(),
     edad: document.getElementById('p-edad').value,
-    nacionalidad : document.getElementById('p-nacionalidad').value.trim(),
+    nacionalidad: document.getElementById('p-nacionalidad').value.trim(),
     correo: document.getElementById('p-correo').value.trim(),
     telefono: document.getElementById('p-telefono').value.trim()
   };
@@ -361,14 +402,14 @@ window.submitPasajero = async () => {
 window.showRegistrarVuelo = async () => {
   const aeropuertos = await window.api.getAeropuertos();
   const aviones = await window.api.getAviones();
-  
+
   // Mapeamos los aeropuertos para poder buscar su nombre/país fácilmente
- const aeropuertoMap = {};
+  const aeropuertoMap = {};
   const optionsAeropuertos = aeropuertos.map(a => { // **RENOMBRAMOS la variable a optionsAeropuertos**
     aeropuertoMap[a.id_aeropuerto] = `${a.ciudad} (${a.pais})`;
     return `<option value="${a.id_aeropuerto}">${a.ciudad} (${a.pais})</option>`;
   }).join('');
-  
+
   // 2. Mapeamos las opciones de Aviones
   const optionsAviones = aviones.map(av => `<option value="${av.id_avion}">${av.id_avion} (${av.aerolinea} - ${av.modelo})</option>`).join('');
 
@@ -399,107 +440,107 @@ window.showRegistrarVuelo = async () => {
     <button class="btn btn-primary mt-2" onclick="submitVuelo()">Guardar</button>
   `;
   showModal('Registrar Vuelo', html);
-  
+
   // Llamamos a la función de actualización inmediatamente después de mostrar el modal
   actualizarOrigenVuelo();
 };
 
 window.actualizarOrigenVuelo = async () => {
-    const idAvion = document.getElementById('v-avion').value;
-    const displayElement = document.getElementById('v-origen-display');
-    const valueElement = document.getElementById('v-origen-value');
+  const idAvion = document.getElementById('v-avion').value;
+  const displayElement = document.getElementById('v-origen-display');
+  const valueElement = document.getElementById('v-origen-value');
 
-    if (!idAvion) {
-        displayElement.value = 'Seleccione un avión';
-        valueElement.value = '';
-        return;
+  if (!idAvion) {
+    displayElement.value = 'Seleccione un avión';
+    valueElement.value = '';
+    return;
+  }
+
+  try {
+    // Llama a la nueva función API para obtener el ID del último aeropuerto
+    const idUltimoAeropuerto = await window.api.getUltimoAeropuertoAvion(idAvion);
+
+    // Obtenemos los aeropuertos para buscar el nombre (podrías optimizar esta parte)
+    const aeropuertos = await window.api.getAeropuertos();
+
+    const aeropuerto = aeropuertos.find(a => a.id_aeropuerto == idUltimoAeropuerto);
+
+    if (aeropuerto) {
+      displayElement.value = `${aeropuerto.ciudad} (${aeropuerto.pais})`;
+      valueElement.value = idUltimoAeropuerto; // Guardamos el ID real en el campo oculto
+    } else {
+      // Esto solo debería ocurrir si el ID 1 no existe
+      displayElement.value = `Error: Aeropuerto ID ${idUltimoAeropuerto} no encontrado`;
+      valueElement.value = idUltimoAeropuerto;
     }
 
-    try {
-        // Llama a la nueva función API para obtener el ID del último aeropuerto
-        const idUltimoAeropuerto = await window.api.getUltimoAeropuertoAvion(idAvion);
-        
-        // Obtenemos los aeropuertos para buscar el nombre (podrías optimizar esta parte)
-        const aeropuertos = await window.api.getAeropuertos();
-        
-        const aeropuerto = aeropuertos.find(a => a.id_aeropuerto == idUltimoAeropuerto);
-
-        if (aeropuerto) {
-            displayElement.value = `${aeropuerto.ciudad} (${aeropuerto.pais})`;
-            valueElement.value = idUltimoAeropuerto; // Guardamos el ID real en el campo oculto
-        } else {
-            // Esto solo debería ocurrir si el ID 1 no existe
-            displayElement.value = `Error: Aeropuerto ID ${idUltimoAeropuerto} no encontrado`;
-            valueElement.value = idUltimoAeropuerto; 
-        }
-
-    } catch (error) {
-        console.error("Error al obtener último aeropuerto:", error);
-        customAlert("Error al cargar la posición del avión.");
-        displayElement.value = "Error de carga";
-        valueElement.value = '';
-    }
+  } catch (error) {
+    console.error("Error al obtener último aeropuerto:", error);
+    customAlert("Error al cargar la posición del avión.");
+    displayElement.value = "Error de carga";
+    valueElement.value = '';
+  }
 };
 
 window.submitVuelo = async () => {
-    const data = {
-        id_avion: document.getElementById('v-avion').value,
-        hora_salida: document.getElementById('v-salida').value,
-        hora_llegada: document.getElementById('v-llegada').value,
-        id_aeropuerto_origen: document.getElementById('v-origen-value').value,
-        id_aeropuerto_destino: document.getElementById('v-destino').value,
-        precio: document.getElementById('v-precio').value,
-        estado: document.getElementById('v-estado').value
-    };
+  const data = {
+    id_avion: document.getElementById('v-avion').value,
+    hora_salida: document.getElementById('v-salida').value,
+    hora_llegada: document.getElementById('v-llegada').value,
+    id_aeropuerto_origen: document.getElementById('v-origen-value').value,
+    id_aeropuerto_destino: document.getElementById('v-destino').value,
+    precio: document.getElementById('v-precio').value,
+    estado: document.getElementById('v-estado').value
+  };
 
-    // validaciones
-    if (!data.hora_salida || !data.hora_llegada) {
-        customAlert('Por favor, complete las fechas de salida y llegada');
-        return;
-    }
+  // validaciones
+  if (!data.hora_salida || !data.hora_llegada) {
+    customAlert('Por favor, complete las fechas de salida y llegada');
+    return;
+  }
 
-    if (data.id_aeropuerto_origen === data.id_aeropuerto_destino) {
-        customAlert('El aeropuerto de origen y destino deben ser diferentes');
-        return;
-    }
+  if (data.id_aeropuerto_origen === data.id_aeropuerto_destino) {
+    customAlert('El aeropuerto de origen y destino deben ser diferentes');
+    return;
+  }
 
-    if (new Date(data.hora_salida) >= new Date(data.hora_llegada)) {
-        customAlert('La hora de llegada debe ser posterior a la hora de salida');
-        return;
-    }
-    
-    if(!data.precio){
-      customAlert('Favor de Introducir el Precio del Vuelo');
+  if (new Date(data.hora_salida) >= new Date(data.hora_llegada)) {
+    customAlert('La hora de llegada debe ser posterior a la hora de salida');
+    return;
+  }
+
+  if (!data.precio) {
+    customAlert('Favor de Introducir el Precio del Vuelo');
+    return;
+  }
+
+  if (data.precio <= 0) {
+    customAlert('El precio del vuelo debe ser mayor que 0');
+    return;
+  }
+
+  try {
+    await window.api.registrarVuelo(data);
+    customAlert('Vuelo registrado correctamente.');
+    closeModal();
+    renderPage('vuelos');
+  } catch (error) {
+    console.error('Error al registrar vuelo:', error);
+    const rawMessage = error.message;
+
+    if (rawMessage && rawMessage.includes('ERROR DE HORARIO')) {
+      const cleanMessage = rawMessage.replace(/[\u0080-\uFFFF]/g, ' ');
+      customAlert(`${cleanMessage}`);
       return;
     }
-
-    if(data.precio <=0){
-      customAlert('El precio del vuelo debe ser mayor que 0');
-      return;
+    if (rawMessage && rawMessage.includes('Error de flujo')) {
+      displayMessage = 'ERROR DE FLUJO: El avión no está en el aeropuerto de origen correcto.';
     }
-
-    try {
-        await window.api.registrarVuelo(data);
-        customAlert('Vuelo registrado correctamente.');
-        closeModal();
-        renderPage('vuelos');
-    } catch (error) {
-        console.error('Error al registrar vuelo:', error);
-        const rawMessage = error.message; 
-        
-        if (rawMessage && rawMessage.includes('ERROR DE HORARIO')) {
-            const cleanMessage = rawMessage.replace(/[\u0080-\uFFFF]/g, ' '); 
-            customAlert(`${cleanMessage}`); 
-            return;
-        }
-        if (rawMessage && rawMessage.includes('Error de flujo')) {
-            displayMessage = 'ERROR DE FLUJO: El avión no está en el aeropuerto de origen correcto.';
-        }
-        customAlert(displayMessage);
-    }
+    customAlert(displayMessage);
+  }
 };
 
-window.showModificarVuelo = async()=>{
+window.showModificarVuelo = async () => {
   const vuelos = await window.api.getVuelos();
   const vuelosActivos = vuelos.filter(v => v.estado !== 'Cancelado' && v.estado !== 'Aterrizado');
   vuelosCache = vuelosActivos;
@@ -517,19 +558,19 @@ window.showModificarVuelo = async()=>{
   showModal('Modificar Vuelo', html);
   // Si hay vuelos cargar los datos del primer vuelo por defecto
   if (vuelosActivos.length > 0) {
-        // Usamos setTimeout(0) para esperar al siguiente ciclo de renderizado del DOM
-        setTimeout(() => {
-             // 1. Asignar el valor del primer vuelo al selector
-             const selectorVuelo = document.getElementById('v-vuelo');
-             if (selectorVuelo) {
-                 selectorVuelo.value = vuelosActivos[0].id_vuelo;
-                 // 2. Ejecutar la función para cargar los datos
-                 cargarDatosVueloModificar();
-             } else {
-                 console.error("Error: El selector 'v-vuelo' no se encontró en el DOM.");
-             }
-        },200); 
-    }
+    // Usamos setTimeout(0) para esperar al siguiente ciclo de renderizado del DOM
+    setTimeout(() => {
+      // 1. Asignar el valor del primer vuelo al selector
+      const selectorVuelo = document.getElementById('v-vuelo');
+      if (selectorVuelo) {
+        selectorVuelo.value = vuelosActivos[0].id_vuelo;
+        // 2. Ejecutar la función para cargar los datos
+        cargarDatosVueloModificar();
+      } else {
+        console.error("Error: El selector 'v-vuelo' no se encontró en el DOM.");
+      }
+    }, 200);
+  }
 };
 
 window.modificarVuelo = async () => {
@@ -537,7 +578,7 @@ window.modificarVuelo = async () => {
     hora_salida: document.getElementById('v-salida').value,
     hora_llegada: document.getElementById('v-llegada').value,
     estado: document.getElementById('v-estado').value,
-    id_vuelo : document.getElementById('v-vuelo').value
+    id_vuelo: document.getElementById('v-vuelo').value
   };
 
   if (!data.hora_salida || !data.hora_llegada) {
@@ -561,83 +602,83 @@ window.modificarVuelo = async () => {
 };
 
 window.cargarDatosVueloModificar = () => {
-    const idVuelo = document.getElementById('v-vuelo').value;
+  const idVuelo = document.getElementById('v-vuelo').value;
 
 
-    if (!idVuelo) {
-        // Limpiar campos si se selecciona la opción vacía
-        document.getElementById('v-salida').value = '';
-        document.getElementById('v-llegada').value = '';
-        document.getElementById('v-estado').value = 'Programado';
-        return;
-    }
+  if (!idVuelo) {
+    // Limpiar campos si se selecciona la opción vacía
+    document.getElementById('v-salida').value = '';
+    document.getElementById('v-llegada').value = '';
+    document.getElementById('v-estado').value = 'Programado';
+    return;
+  }
 
-    // Buscar el vuelo seleccionado en la caché (vuelosCache debe ser global)
-    const vueloSeleccionado = vuelosCache.find(v => v.id_vuelo == idVuelo);
+  // Buscar el vuelo seleccionado en la caché (vuelosCache debe ser global)
+  const vueloSeleccionado = vuelosCache.find(v => v.id_vuelo == idVuelo);
 
-    if (vueloSeleccionado) {
-        
-        // --- INICIO DE LA SOLUCIÓN MÁS ROBUSTA ---
-        const pad = (num) => (num < 10 ? '0' : '') + num;
+  if (vueloSeleccionado) {
 
-        const formatDateTime = (dateTimeString) => {
-            if (!dateTimeString || typeof dateTimeString !== 'object') {
-              console.log('falle')
-                return '';
-            }
-            
-            // 1. Inicializa el objeto Date
-            const date = new Date(dateTimeString);
+    // --- INICIO DE LA SOLUCIÓN MÁS ROBUSTA ---
+    const pad = (num) => (num < 10 ? '0' : '') + num;
 
-            if (isNaN(date.getTime())) {
-                console.error("Error: new Date() no pudo parsear la cadena:", dateTimeString);
-                return '';
-            }
-            
-            // 2. Extrae las partes locales de la fecha. 
-            // Esto utiliza la zona horaria que JS infirió del string (GMT-0600 en tu caso)
-            const year = date.getFullYear();
-            const month = pad(date.getMonth() + 1); 
-            const day = pad(date.getDate());
-            const hours = pad(date.getHours());
-            const minutes = pad(date.getMinutes());
+    const formatDateTime = (dateTimeString) => {
+      if (!dateTimeString || typeof dateTimeString !== 'object') {
+        console.log('falle')
+        return '';
+      }
 
-            // 3. Construye el string estricto requerido: YYYY-MM-DDThh:mm
-            const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
-            
-            console.log(`[DEBUG] Fecha formateada (Local): ${formattedDate}`);
-            
-            return formattedDate;
-        };
-        
-        const salidaInput = document.getElementById('v-salida');
-        const llegadaInput = document.getElementById('v-llegada');
-        
-        // Verificar si los elementos se encontraron antes de asignar
-        if (salidaInput && llegadaInput) {
-             const formattedSalida = formatDateTime(vueloSeleccionado.hora_salida);
-             const formattedLlegada = formatDateTime(vueloSeleccionado.hora_llegada);
-             salidaInput.value = formattedSalida;
-             llegadaInput.value = formattedLlegada;
-             
-             document.getElementById('v-estado').value = vueloSeleccionado.estado;
-        } else {
-             console.error("Error: Inputs 'v-salida' o 'v-llegada' no se encontraron en el DOM.");
-        }
-        
-        // (Opcional) Registro en consola para ver los datos cargados
-        console.log(`Datos cargados para Vuelo ID ${idVuelo}:`, {
-            salida: vueloSeleccionado.hora_salida,
-            llegada: vueloSeleccionado.hora_llegada,
-            estado: vueloSeleccionado.estado
-        });
+      // 1. Inicializa el objeto Date
+      const date = new Date(dateTimeString);
 
+      if (isNaN(date.getTime())) {
+        console.error("Error: new Date() no pudo parsear la cadena:", dateTimeString);
+        return '';
+      }
+
+      // 2. Extrae las partes locales de la fecha. 
+      // Esto utiliza la zona horaria que JS infirió del string (GMT-0600 en tu caso)
+      const year = date.getFullYear();
+      const month = pad(date.getMonth() + 1);
+      const day = pad(date.getDate());
+      const hours = pad(date.getHours());
+      const minutes = pad(date.getMinutes());
+
+      // 3. Construye el string estricto requerido: YYYY-MM-DDThh:mm
+      const formattedDate = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+      console.log(`[DEBUG] Fecha formateada (Local): ${formattedDate}`);
+
+      return formattedDate;
+    };
+
+    const salidaInput = document.getElementById('v-salida');
+    const llegadaInput = document.getElementById('v-llegada');
+
+    // Verificar si los elementos se encontraron antes de asignar
+    if (salidaInput && llegadaInput) {
+      const formattedSalida = formatDateTime(vueloSeleccionado.hora_salida);
+      const formattedLlegada = formatDateTime(vueloSeleccionado.hora_llegada);
+      salidaInput.value = formattedSalida;
+      llegadaInput.value = formattedLlegada;
+
+      document.getElementById('v-estado').value = vueloSeleccionado.estado;
     } else {
-        console.error(`Error: Vuelo con ID ${idVuelo} no encontrado en caché.`);
+      console.error("Error: Inputs 'v-salida' o 'v-llegada' no se encontraron en el DOM.");
     }
+
+    // (Opcional) Registro en consola para ver los datos cargados
+    console.log(`Datos cargados para Vuelo ID ${idVuelo}:`, {
+      salida: vueloSeleccionado.hora_salida,
+      llegada: vueloSeleccionado.hora_llegada,
+      estado: vueloSeleccionado.estado
+    });
+
+  } else {
+    console.error(`Error: Vuelo con ID ${idVuelo} no encontrado en caché.`);
+  }
 };
 
-window.showCancelarVuelo = async()=>{
+window.showCancelarVuelo = async () => {
   const vuelos = await window.api.getVuelos();
   const vuelosActivos = vuelos.filter(v => v.estado == 'Programado');
   const options = vuelosActivos.map(v => `<option value="${v.id_vuelo}">Id: ${v.id_vuelo} / Ruta: ${v.origen_ciudad} -> ${v.destino_ciudad} / Estado:(${v.estado})</option>`).join('');
@@ -655,7 +696,7 @@ window.showCancelarVuelo = async()=>{
 window.cancelarVuelo = async () => {
   const data = {
     estado: document.getElementById('v-estado').value,
-    id_vuelo : document.getElementById('v-vuelo').value
+    id_vuelo: document.getElementById('v-vuelo').value
   };
 
 
@@ -705,80 +746,80 @@ window.submitBoleto = async () => {
     return;
   }
   try {
-  await window.api.emitirBoleto(data);
-  
+    await window.api.emitirBoleto(data);
 
-  await window.api.obtenertipoPasajero();
-  closeModal();
-  renderPage('boletos');
+
+    await window.api.obtenertipoPasajero();
+    closeModal();
+    renderPage('boletos');
   } catch (error) {
     console.error('Error al emitir boleto:', error);
-        // Obtener el mensaje de error. Si tu backend lo devuelve como un objeto Error, 
-        // el mensaje de error del trigger estará en 'error.message'.
-        const errorMessage = error.message || 'Error desconocido al emitir el boleto.';
-        // Si el mensaje de error contiene la palabra clave del trigger, mostrarla.
-        if (errorMessage.includes('ya tiene un boleto registrado')) {
-             customAlert(errorMessage); 
-        } else {
-             // Para otros errores (conexión, etc.)
-             customAlert(`Error de registro: ${errorMessage}`);
-        }
+    // Obtener el mensaje de error. Si tu backend lo devuelve como un objeto Error, 
+    // el mensaje de error del trigger estará en 'error.message'.
+    const errorMessage = error.message || 'Error desconocido al emitir el boleto.';
+    // Si el mensaje de error contiene la palabra clave del trigger, mostrarla.
+    if (errorMessage.includes('ya tiene un boleto registrado')) {
+      customAlert(errorMessage);
+    } else {
+      // Para otros errores (conexión, etc.)
+      customAlert(`Error de registro: ${errorMessage}`);
+    }
   }
-  
+
 };
 
 window.realizarCheckIn = async (id) => {
   const resultadocheck = window.api.revisarBoleto(id);
   console.log(resultadocheck);
-  if(resultadocheck == "Emitido"){
-        customAlert('Check-in ya realizado para este boleto');
-        return;
-      }
-      else{
+  if (resultadocheck == "Emitido") {
+    customAlert('Check-in ya realizado para este boleto');
+    return;
+  }
+  else {
     try {
-        
-        // Usamos AWAIT para detener la ejecución y esperar la respuesta del modal.
-        const mensaje = '¿Confirma realizar el Check-in para este boleto?';
-        const confirmado = await customConfirmAsync(mensaje); // Debe existir esta función en tu código
-        
-        if (confirmado) {
-            // El usuario hizo clic en "Aceptar"
-            await window.api.realizarCheckIn(id);
-            customAlert('Check-in realizado correctamente');
-            renderPage('boletos');
-        } else {
-            // El usuario hizo clic en "Cancelar"
-            customAlert('Check-in cancelado.');
-        }
-      
+
+      // Usamos AWAIT para detener la ejecución y esperar la respuesta del modal.
+      const mensaje = '¿Confirma realizar el Check-in para este boleto?';
+      const confirmado = await customConfirmAsync(mensaje); // Debe existir esta función en tu código
+
+      if (confirmado) {
+        // El usuario hizo clic en "Aceptar"
+        await window.api.realizarCheckIn(id);
+        customAlert('Check-in realizado correctamente');
+        renderPage('boletos');
+      } else {
+        // El usuario hizo clic en "Cancelar"
+        customAlert('Check-in cancelado.');
+      }
+
     } catch (error) {
-        console.error("Error al realizar Check-in:", error);
-        customAlert(`Ocurrió un error: ${error.message}`);
+      console.error("Error al realizar Check-in:", error);
+      customAlert(`Ocurrió un error: ${error.message}`);
     }
   }
 };
 
 window.cancelarBoleto = async (id) => {
-    try {
-        
-        // Usamos AWAIT para detener la ejecución y esperar la respuesta del modal.
-        const mensaje = '¿Quiere cancelar este boleto?';
-        const confirmado = await customConfirmAsync(mensaje); // Debe existir esta función en tu código
-        
-        if (confirmado) {
-            // El usuario hizo clic en "Aceptar"
-            await window.api.cancelarBoleto(id);
-            customAlert('Boleto cancelado correctamente');
-            renderPage('boletos');
-        } else {
-            // El usuario hizo clic en "Cancelar"
-            customAlert('Cancelacion super cancelada');
-        }
-      
-    } catch (error) {
-        console.error("Error al realizar Check-in:", error);
-        customAlert(`Ocurrió un error: ${error.message}`);
+  try {
+
+    // Usamos AWAIT para detener la ejecución y esperar la respuesta del modal.
+    const mensaje = '¿Quiere cancelar este boleto?';
+    const confirmado = await customConfirmAsync(mensaje); // Debe existir esta función en tu código
+
+    if (confirmado) {
+      // El usuario hizo clic en "Aceptar"
+      await window.api.cancelarBoleto(id);
+      customAlert('Boleto cancelado correctamente');
+      renderPage('boletos');
+    } else {
+      // El usuario hizo clic en "Cancelar"
+      customAlert('Cancelacion super cancelada');
     }
+
+  } catch (error) {
+    console.error("Error al realizar Check-in:", error);
+    customAlert(`Ocurrió un error: ${error.message}`);
+  }
 };
 
 window.verHistorial = async (id) => {
@@ -808,7 +849,7 @@ window.submitAvion = async () => {
     modelo: document.getElementById('a-modelo').value.trim(),
     aerolinea: document.getElementById('a-aerolinea').value.trim(),
     capacidad_pasajeros: document.getElementById('a-capacidad').value,
-    pesoCargaMaximo : document.getElementById('a-capacidadCargaMaxima').value,
+    pesoCargaMaximo: document.getElementById('a-capacidadCargaMaxima').value,
   };
 
   if (!data.modelo || !data.aerolinea || !data.capacidad_pasajeros || !data.pesoCargaMaximo) {
@@ -831,7 +872,7 @@ window.submitAvion = async () => {
   renderPage('aviones');
 };
 
-window.showMantenimiento = async()=>{
+window.showMantenimiento = async () => {
   const aviones = await window.api.getAviones();
   const avionesDisponibles = aviones.filter(a => a.estado !== 'En uso');
   const options = avionesDisponibles.map(a => `<option value="${a.id_avion}">Id: ${a.id_avion} / Modelo:  ${a.modelo} / Aeroliniea:  ${a.aerolinea}</option>`).join('');
@@ -854,7 +895,7 @@ window.mantenimiento = async () => {
 
   const data = {
     estado: document.getElementById('a-estado').value,
-    id_avion : document.getElementById('a-avion').value
+    id_avion: document.getElementById('a-avion').value
   };
 
   if (!data.id_avion) {
@@ -870,7 +911,7 @@ window.fueramantenimiento = async () => {
 
   const data = {
     estado: document.getElementById('a-estado2').value,
-    id_avion : document.getElementById('a-avion').value
+    id_avion: document.getElementById('a-avion').value
   };
 
   if (!data.id_avion) {
@@ -896,7 +937,7 @@ window.showRegistrarAeropuerto = () => {
 
 window.submitAeropuerto = async () => {
   const data = {
-    nombre : document.getElementById('ae-nombre').value.trim(),
+    nombre: document.getElementById('ae-nombre').value.trim(),
     pais: document.getElementById('ae-pais').value.trim(),
     estado: document.getElementById('ae-estado').value.trim(),
     ciudad: document.getElementById('ae-ciudad').value.trim()
@@ -929,49 +970,49 @@ window.showRegistrarEquipaje = async () => {
 
 window.submitEquipaje = async () => {
   try {
-  const data = {
-    id_pasajero: document.getElementById('eq-pasajero').value.trim(),
-    peso: document.getElementById('eq-peso').value.trim(),
-    estado: document.getElementById('eq-estado').value,
-  };
+    const data = {
+      id_pasajero: document.getElementById('eq-pasajero').value.trim(),
+      peso: document.getElementById('eq-peso').value.trim(),
+      estado: document.getElementById('eq-estado').value,
+    };
 
-  if (!data.id_pasajero || !data.peso || !data.estado) {
-    customAlert('Por favor, complete todos los campos');
-    return;
-  }
+    if (!data.id_pasajero || !data.peso || !data.estado) {
+      customAlert('Por favor, complete todos los campos');
+      return;
+    }
 
-  if (parseInt(data.peso) <= 0) {
-    customAlert('La capacidad debe ser mayor a 0');
-    return;
-  }
+    if (parseInt(data.peso) <= 0) {
+      customAlert('La capacidad debe ser mayor a 0');
+      return;
+    }
 
-  await window.api.registrarEquipaje(data);
-  closeModal();
-  renderPage('equipaje');
+    await window.api.registrarEquipaje(data);
+    closeModal();
+    renderPage('equipaje');
   } catch (error) {
     console.error('Error al emitir equipaje:', error);
-        // Obtener el mensaje de error. Si tu backend lo devuelve como un objeto Error, 
-        // el mensaje de error del trigger estará en 'error.message'.
-        const errorMessage = error.message || 'Error desconocido al registrar el equipaje.';
-        // Si el mensaje de error contiene la palabra clave del trigger, mostrarla.
-        if (errorMessage.includes('no tiene un boleto activo/programado para registrar equipaje')) {
-             customAlert(errorMessage); 
-        } else {
-             // Para otros errores (conexión, etc.)
-             customAlert(`Error de registro: ${errorMessage}`);
-        }
+    // Obtener el mensaje de error. Si tu backend lo devuelve como un objeto Error, 
+    // el mensaje de error del trigger estará en 'error.message'.
+    const errorMessage = error.message || 'Error desconocido al registrar el equipaje.';
+    // Si el mensaje de error contiene la palabra clave del trigger, mostrarla.
+    if (errorMessage.includes('no tiene un boleto activo/programado para registrar equipaje')) {
+      customAlert(errorMessage);
+    } else {
+      // Para otros errores (conexión, etc.)
+      customAlert(`Error de registro: ${errorMessage}`);
+    }
   }
 };
 
 window.mostrarEquipajePorPasajero = (idPasajero) => {
-    // 1. Obtener la caché global de equipajes
-    const todosEquipajes = window.equipajesCache || []; 
+  // 1. Obtener la caché global de equipajes
+  const todosEquipajes = window.equipajesCache || [];
 
-    // 2. Filtrar el equipaje
-    const equipajeFiltrado = todosEquipajes.filter(eq => eq.id_pasajero === idPasajero && (eq.estado === 'Abordando' || eq.estado === 'Abordo'));
+  // 2. Filtrar el equipaje
+  const equipajeFiltrado = todosEquipajes.filter(eq => eq.id_pasajero === idPasajero && (eq.estado === 'Abordando' || eq.estado === 'Abordo'));
 
-    // 3. Generar las nuevas filas HTML
-    const nuevasFilas = equipajeFiltrado.map(eq => `
+  // 3. Generar las nuevas filas HTML
+  const nuevasFilas = equipajeFiltrado.map(eq => `
         <tr>
             <td>${eq.id_equipaje}</td>
             <td>${eq.id_pasajero}</td>
@@ -979,28 +1020,28 @@ window.mostrarEquipajePorPasajero = (idPasajero) => {
             <td>${eq.estado}</td>
         </tr>
     `).join('');
-    
-    // Si no hay equipaje, mostrar un mensaje
-    const contenidoFinal = nuevasFilas.length > 0 
-        ? nuevasFilas 
-        : `<tr><td colspan="4" class="text-center">No hay equipaje registrado para el pasajero ${idPasajero}.</td></tr>`;
 
-    // 4. Insertar el nuevo contenido en el tbody de la tabla inferior
-    const tbodyEquipaje = document.getElementById('equipaje-body');
-    if (tbodyEquipaje) {
-        tbodyEquipaje.innerHTML = contenidoFinal;
-    }
+  // Si no hay equipaje, mostrar un mensaje
+  const contenidoFinal = nuevasFilas.length > 0
+    ? nuevasFilas
+    : `<tr><td colspan="4" class="text-center">No hay equipaje registrado para el pasajero ${idPasajero}.</td></tr>`;
+
+  // 4. Insertar el nuevo contenido en el tbody de la tabla inferior
+  const tbodyEquipaje = document.getElementById('equipaje-body');
+  if (tbodyEquipaje) {
+    tbodyEquipaje.innerHTML = contenidoFinal;
+  }
 };
 
 window.mostrarEquipajeEntregadoExtraviado = (idPasajero) => {
-    // 1. Obtener la caché global de equipajes
-    const todosEquipajes = window.equipajesCache2 || []; 
+  // 1. Obtener la caché global de equipajes
+  const todosEquipajes = window.equipajesCache2 || [];
 
-    // 2. Filtrar el equipaje
-    const equipajeFiltrado = todosEquipajes.filter(eq => eq.id_pasajero === idPasajero && (eq.estado === 'Para recoger' ||eq.estado === 'Entregado' || eq.estado === 'Extraviado' ));
+  // 2. Filtrar el equipaje
+  const equipajeFiltrado = todosEquipajes.filter(eq => eq.id_pasajero === idPasajero && (eq.estado === 'Para recoger' || eq.estado === 'Entregado' || eq.estado === 'Extraviado'));
 
-    // 3. Generar las nuevas filas HTML
-    const nuevasFilas = equipajeFiltrado.map(eq => `
+  // 3. Generar las nuevas filas HTML
+  const nuevasFilas = equipajeFiltrado.map(eq => `
         <tr>
             <td>${eq.id_equipaje}</td>
             <td>${eq.id_pasajero}</td>
@@ -1010,77 +1051,77 @@ window.mostrarEquipajeEntregadoExtraviado = (idPasajero) => {
             <button class="btn btn-sm btn-primary" onclick="confirmarExtravio(${eq.id_equipaje})">Reportar Extravio</button></td>
         </tr>
     `).join('');
-    
-    // Si no hay equipaje, mostrar un mensaje
-    const contenidoFinal = nuevasFilas.length > 0 
-        ? nuevasFilas 
-        : `<tr><td colspan="4" class="text-center">No hay equipaje registrado para el pasajero ${idPasajero}.</td></tr>`;
 
-    // 4. Insertar el nuevo contenido en el tbody de la tabla inferior
-    const tbodyEquipaje = document.getElementById('equipaje-body2');
-    if (tbodyEquipaje) {
-        tbodyEquipaje.innerHTML = contenidoFinal;
-    }
+  // Si no hay equipaje, mostrar un mensaje
+  const contenidoFinal = nuevasFilas.length > 0
+    ? nuevasFilas
+    : `<tr><td colspan="4" class="text-center">No hay equipaje registrado para el pasajero ${idPasajero}.</td></tr>`;
+
+  // 4. Insertar el nuevo contenido en el tbody de la tabla inferior
+  const tbodyEquipaje = document.getElementById('equipaje-body2');
+  if (tbodyEquipaje) {
+    tbodyEquipaje.innerHTML = contenidoFinal;
+  }
 };
 
 
 window.eliminarEquipaje = async (id) => {
-    try {
-        // Usamos AWAIT con el adaptador asíncrono.
-        // El código se detendrá aquí hasta que el usuario haga clic en Aceptar o Cancelar.
-        const mensaje = '¿Está seguro de que desea eliminar este equipaje de forma permanente? Esta acción no se puede deshacer.';
-        const confirmado = await customConfirmAsync(mensaje); // Llama a la nueva función
+  try {
+    // Usamos AWAIT con el adaptador asíncrono.
+    // El código se detendrá aquí hasta que el usuario haga clic en Aceptar o Cancelar.
+    const mensaje = '¿Está seguro de que desea eliminar este equipaje de forma permanente? Esta acción no se puede deshacer.';
+    const confirmado = await customConfirmAsync(mensaje); // Llama a la nueva función
 
-        if (confirmado) {
-            await window.api.eliminarEquipaje(id);
-            customAlert('Equipaje eliminado correctamente');
-            renderPage('equipaje');
-        } else {
-            // El usuario hizo clic en Cancelar (confirmado es false)
-            customAlert('Eliminación de equipaje cancelada.');
-        }
-    } catch (error) {
-        console.error("Error al eliminar equipaje:", error);
-        customAlert(`Ocurrió un error al eliminar el equipaje: ${error.message}`);
+    if (confirmado) {
+      await window.api.eliminarEquipaje(id);
+      customAlert('Equipaje eliminado correctamente');
+      renderPage('equipaje');
+    } else {
+      // El usuario hizo clic en Cancelar (confirmado es false)
+      customAlert('Eliminación de equipaje cancelada.');
     }
+  } catch (error) {
+    console.error("Error al eliminar equipaje:", error);
+    customAlert(`Ocurrió un error al eliminar el equipaje: ${error.message}`);
+  }
 };
 
 window.confirmarEntrega = async (id) => {
-    try {
-        // Usamos AWAIT con el adaptador asíncrono.
-        // El código se detendrá aquí hasta que el usuario haga clic en Aceptar o Cancelar.
-        const mensaje = '¿Este equipaje ha sido entregado al pasajero?';
-        const confirmado = await customConfirmAsync(mensaje); // Llama a la nueva función
+  try {
+    // Usamos AWAIT con el adaptador asíncrono.
+    // El código se detendrá aquí hasta que el usuario haga clic en Aceptar o Cancelar.
+    const mensaje = '¿Este equipaje ha sido entregado al pasajero?';
+    const confirmado = await customConfirmAsync(mensaje); // Llama a la nueva función
 
-        if (confirmado) {
-            await window.api.confirmarEntregaEquipaje(id);
-            customAlert('Equipaje entregado correctamente');
-            renderPage('equipaje');
-        } else {
-        }
-    } catch (error) {
-        console.error("Error al entregar el equipaje:", error);
-        customAlert(`Ocurrió un error al entregar el equipaje: ${error.message}`);
+    if (confirmado) {
+      await window.api.confirmarEntregaEquipaje(id);
+      customAlert('Equipaje entregado correctamente');
+      renderPage('equipaje');
+    } else {
     }
+  } catch (error) {
+    console.error("Error al entregar el equipaje:", error);
+    customAlert(`Ocurrió un error al entregar el equipaje: ${error.message}`);
+  }
 };
 
 window.confirmarExtravio = async (id) => {
-    try {
-        // Usamos AWAIT con el adaptador asíncrono.
-        // El código se detendrá aquí hasta que el usuario haga clic en Aceptar o Cancelar.
-        const mensaje = '¿Este equipaje ha sido extraviado?';
-        const confirmado = await customConfirmAsync(mensaje); // Llama a la nueva función
+  try {
+    // Usamos AWAIT con el adaptador asíncrono.
+    // El código se detendrá aquí hasta que el usuario haga clic en Aceptar o Cancelar.
+    const mensaje = '¿Este equipaje ha sido extraviado?';
+    const confirmado = await customConfirmAsync(mensaje); // Llama a la nueva función
 
-        if (confirmado) {
-            await window.api.confirmarExtravioEquipaje(id);
-            customAlert('Equipaje reportado como extraviado');
-            renderPage('equipaje');
-        } else {
-        }
-    } catch (error) {
-        console.error("Error al extraviar el equipaje:", error);
-        customAlert(`Ocurrió un error al extraviar el equipaje: ${error.message}`);
+    if (confirmado) {
+      await window.api.confirmarExtravioEquipaje(id);
+      customAlert('Equipaje reportado como extraviado');
+      renderPage('equipaje');
+    } else {
     }
+  } catch (error) {
+    console.error("Error al extraviar el equipaje:", error);
+    customAlert(`Ocurrió un error al extraviar el equipaje: ${error.message}`);
+  }
 };
 
 // Modal Logic
@@ -1104,6 +1145,49 @@ window.closeModal = () => {
   const modal = document.getElementById('genericModal');
   if (modal) modal.remove();
 };
+
+async function generarReporteAeropuerto() {
+  const select = document.getElementById('reporte-aeropuerto');
+  const idAeropuerto = select.value;
+
+  if (!idAeropuerto) {
+    await customAlert('Por favor seleccione un aeropuerto');
+    return;
+  }
+
+  try {
+    const result = await window.api.generarReporteVuelosAeropuerto(parseInt(idAeropuerto));
+    if (result.success) {
+      await customAlert(`Reporte generado exitosamente en: ${result.path}`);
+    }
+  } catch (error) {
+    console.error('Error generando reporte:', error);
+    await customAlert('Error al generar el reporte');
+  }
+}
+
+async function generarReporteAvion() {
+  const select = document.getElementById('reporte-avion');
+  const idAvion = select.value;
+
+  if (!idAvion) {
+    await customAlert('Por favor seleccione un avión');
+    return;
+  }
+
+  try {
+    const result = await window.api.generarReporteBoletosAvion(parseInt(idAvion));
+    if (result.success) {
+      await customAlert(`Reporte generado exitosamente en: ${result.path}`);
+    }
+  } catch (error) {
+    console.error('Error generando reporte:', error);
+    await customAlert('Error al generar el reporte');
+  }
+}
+
+window.generarReporteAeropuerto = generarReporteAeropuerto;
+window.generarReporteAvion = generarReporteAvion;
 
 
 // Iniciar

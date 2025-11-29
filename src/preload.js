@@ -21,11 +21,11 @@ contextBridge.exposeInMainWorld('api', {
   registrarPasajero: (data) => ipcRenderer.invoke('registrarPasajero', data),
   registrarVuelo: (data) => ipcRenderer.invoke('registrarVuelo', data),
   modificarVuelo: (data) => ipcRenderer.invoke('modificarVuelo', data),
-  cancelarVuelo: (data) => ipcRenderer.invoke('cancelarVuelo', data), 
+  cancelarVuelo: (data) => ipcRenderer.invoke('cancelarVuelo', data),
   registrarAeropuerto: (data) => ipcRenderer.invoke('registrarAeropuerto', data),
   registrarAvion: (data) => ipcRenderer.invoke('registrarAvion', data),
   mantenimientoAvion: (data) => ipcRenderer.invoke('mantenimientoAvion', data),
-  sacarmantenimientoAvion: (data) => ipcRenderer.invoke('mantenimientoAvion', data), 
+  sacarmantenimientoAvion: (data) => ipcRenderer.invoke('mantenimientoAvion', data),
   registrarEquipaje: (data) => ipcRenderer.invoke('registrarEquipaje', data),
   eliminarEquipaje: (id) => ipcRenderer.invoke('eliminarEquipaje', id),
   confirmarEntregaEquipaje: (id) => ipcRenderer.invoke('confirmarEntregaEquipaje', id),
@@ -36,5 +36,9 @@ contextBridge.exposeInMainWorld('api', {
   asignarAvion: (idVuelo, idAvion) => ipcRenderer.invoke('asignarAvion', idVuelo, idAvion),
 
   //Stored Procedures
-  obtenertipoPasajero: () => ipcRenderer.invoke('obtenertipoPasajero')
+  obtenertipoPasajero: () => ipcRenderer.invoke('obtenertipoPasajero'),
+
+  // Reports
+  generarReporteVuelosAeropuerto: (idAeropuerto) => ipcRenderer.invoke('generarReporteVuelosAeropuerto', idAeropuerto),
+  generarReporteBoletosAvion: (idAvion) => ipcRenderer.invoke('generarReporteBoletosAvion', idAvion)
 });

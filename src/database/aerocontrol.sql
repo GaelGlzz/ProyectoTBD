@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS `avion` (
   `estado` varchar(16) DEFAULT 'En espera',
   PRIMARY KEY (`id_avion`),
   KEY `id_ultimoAeropuerto` (`id_ultimoAeropuerto`),
-  CONSTRAINT `id_ultimoAeropuerto` FOREIGN KEY (`id_ultimoAeropuerto`) REFERENCES `vuelo` (`id_aeropuerto_destino`) ON DELETE NO ACTION ON UPDATE NO ACTION
+  CONSTRAINT `id_ultimoAeropuerto` FOREIGN KEY (`id_ultimoAeropuerto`) REFERENCES `aeropuerto` (`id_aeropuerto`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- Dumping data for table aerocontrol.avion: ~6 rows (approximately)
