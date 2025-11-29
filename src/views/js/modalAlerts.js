@@ -18,7 +18,7 @@ const modalTitle = document.getElementById('modalTitle');
             modalElement.style.display = 'flex';
         }
 
-        export function customConfirm(message, callback, title = 'Confirmación Requerida') {
+        export function customConfirm(message, callback,title = 'Confirmación Requerida') {
             modalTitle.textContent = title;
             modalMessage.textContent = message;
             modalOkBtn.textContent = 'Aceptar';
@@ -43,3 +43,12 @@ const modalTitle = document.getElementById('modalTitle');
 
             modalElement.style.display = 'flex'; 
         }
+
+        export function customConfirmAsync(message, title) {
+    // Esta función envuelve tu customConfirm (basada en callback) en una Promesa
+    return new Promise((resolve) => {
+        // La función que pasas como segundo argumento a customConfirm es el callback
+        // que tu customConfirm llamará con 'true' o 'false'.
+        customConfirm(message, resolve, title);
+    });
+}

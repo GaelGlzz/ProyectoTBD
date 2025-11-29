@@ -1,4 +1,4 @@
-import { customAlert, customConfirm } from './modalAlerts.js'; 
+import { customAlert, customConfirmAsync } from './modalAlerts.js'; 
 let usuarioActual = null;
 const appContainer = document.getElementById('app-container');
 let vuelosCache = []; // Variable global para guardar los datos de los vuelos
@@ -156,7 +156,9 @@ async function renderPage(page) {
       `;
     } else if (page === 'boletos') {
       const boletos = await window.api.getBoletos();
-      let rows = boletos.map(b => `
+      const boletosParaCheckIn = boletos.filter(b => b.estado === 'No emitido');
+      const demasBoletos = boletos.filter(b => b.estado !== 'No emitido');
+      let rows = boletosParaCheckIn.map(b => `
         <tr>
           <td>${b.id_boleto}</td>
           <td>${b.nombre} ${b.apellido}</td>
@@ -165,7 +167,19 @@ async function renderPage(page) {
           <td>${b.terminal}</td>
           <td>
             <button class="btn btn-sm btn-primary" onclick="realizarCheckIn(${b.id_boleto})">Check-in</button>
+            <button class="btn btn-sm btn-secondary" onclick="cancelarBoleto(${b.id_boleto})">Cancelar</button>
           </td>
+        </tr>
+      `).join('');
+
+      let rows2 = demasBoletos.map(b => `
+        <tr>
+          <td>${b.id_boleto}</td>
+          <td>${b.nombre} ${b.apellido}</td>
+          <td>${b.origen} -> ${b.destino}</td>
+          <td>${b.asiento}</td>
+          <td>${b.terminal}</td>
+          <td>${b.estado}</td>
         </tr>
       `).join('');
 
@@ -179,6 +193,11 @@ async function renderPage(page) {
             <tr><th>ID</th><th>Pasajero</th><th>Vuelo</th><th>Asiento</th><th>Terminal</th><th>Acciones</th></tr>
           </thead>
           <tbody>${rows}</tbody>
+        <table class="table">
+          <thead>
+            <tr><th>ID</th><th>Pasajero</th><th>Vuelo</th><th>Asiento</th><th>Terminal</th><th>Estado</th></tr>
+          </thead>
+          <tbody>${rows2}</tbody>
         </table>
       `;
     } else if (page === 'aviones') {
@@ -232,28 +251,46 @@ async function renderPage(page) {
         </table>
       `;
     }else if(page=='equipaje'){
+      const pasajeros = await window.api.getPasajerosEquipaje();
       const equipajes = await window.api.getEquipaje();
-      let rows = equipajes.map(eq => `
-        <tr>
-          <td>${eq.id_equipaje}</td>
-          <td>${eq.id_pasajero}</td>
-          <td>${eq.peso}</td>
-          <td>${eq.estado}</td>
+      let rows2 = pasajeros.map(p => `
+        <tr class="clickable-row" onclick="mostrarEquipajePorPasajero(${p.id_pasajero}); mostrarEquipajeEntregadoExtraviado(${p.id_pasajero})">
+          <td>${p.id_pasajero}</td>
+          <td>${p.nombre} ${p.apellido}</td>
+          <td>${p.total_equipaje}</td>
         </tr>
-      `).join('');
+      `).join('');  
 
-      content.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3>Administración de Equipaje </h3>
-            <button class="btn btn-success" onclick="showRegistrarEquipaje()">+ Nuevo Equipaje</button>
-        </div> <br>
+    // **CAMBIO CLAVE: Inicializa rows (la tabla de equipaje) vacía**
+    // O con un mensaje que pide seleccionar un pasajero:
+    let rowsEquipajeInicial = `<tr><td colspan="4" class="text-center">Seleccione un pasajero para ver su equipaje.</td></tr>`;
+    let rowsEquipajeEntregadoExtraviado = `<tr><td colspan="4" class="text-center">Seleccione un pasajero para ver su equipaje.</td></tr>`;
+
+    // Almacenar los datos globales (si no están ya disponibles)
+    window.equipajesCache = equipajes;
+    window.equipajesCache2 = equipajes;
+
+    content.innerHTML = `
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3>Administración de Equipaje </h3>
+            <button class="btn btn-success" onclick="showRegistrarEquipaje()">+ Nuevo Equipaje</button>
+        </div> <br>
+        <table class="table table-hover">           <thead>
+            <tr><th>Id Pasajero</th><th>Nombre</th><th>Total de equipaje</th></tr>
+          </thead>
+          <tbody>${rows2}</tbody>
+        </table>
+        <table class="table">
+          <thead>
+            <tr><th>Id Equipaje</th><th>Id Pasajero</th><th>Peso en Kg</th><th>Estado Actual</th></tr>
+          </thead>
+          <tbody id="equipaje-body">${rowsEquipajeInicial}</tbody>         </table>
         <table class="table">
-          <thead>
-            <tr><th>Id Equipaje</th><th>Id Pasajero</th><th>Peso en Kg</th><th>Estado Actual</th></tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      `;
+          <thead>
+            <tr><th>Id Equipaje</th><th>Id Pasajero</th><th>Peso en Kg</th><th>Estado Actual</th><th>Acciones</th></tr>
+          </thead>
+          <tbody id="equipaje-body2">${rowsEquipajeEntregadoExtraviado}</tbody>         </table>
+      `;
     }
   } catch (error) {
     console.error(error);
@@ -617,9 +654,10 @@ window.cancelarVuelo = async () => {
 window.showEmitirBoleto = async () => {
   const pasajeros = await window.api.getPasajeros();
   const vuelos = await window.api.getVuelos();
+  const vuelosDisponibles = vuelos.filter(v => v.estado === 'Programado');
 
   const pOptions = pasajeros.map(p => `<option value="${p.id_pasajero}">${p.nombre} ${p.apellido}</option>`).join('');
-  const vOptions = vuelos.map(v => `<option value="${v.id_vuelo}">${v.origen_ciudad} -> ${v.destino_ciudad} (${new Date(v.hora_salida).toLocaleDateString()})</option>`).join('');
+  const vOptions = vuelosDisponibles.map(v => `<option value="${v.id_vuelo}">${v.origen_ciudad} -> ${v.destino_ciudad} (${new Date(v.hora_salida).toLocaleDateString()})</option>`).join('');
 
   const html = `
         <div class="form-group"><label>Pasajero</label><select id="b-pasajero" class="form-control">${pOptions}</select></div>
@@ -650,20 +688,81 @@ window.submitBoleto = async () => {
     customAlert('El precio debe ser mayor a 0');
     return;
   }
+  try {
   await window.api.emitirBoleto(data);
+  
 
   await window.api.obtenertipoPasajero();
   closeModal();
   renderPage('boletos');
+  } catch (error) {
+    console.error('Error al emitir boleto:', error);
+        // Obtener el mensaje de error. Si tu backend lo devuelve como un objeto Error, 
+        // el mensaje de error del trigger estará en 'error.message'.
+        const errorMessage = error.message || 'Error desconocido al emitir el boleto.';
+        // Si el mensaje de error contiene la palabra clave del trigger, mostrarla.
+        if (errorMessage.includes('ya tiene un boleto registrado')) {
+             customAlert(errorMessage); 
+        } else {
+             // Para otros errores (conexión, etc.)
+             customAlert(`Error de registro: ${errorMessage}`);
+        }
+  }
   
 };
 
 window.realizarCheckIn = async (id) => {
-  if (confirm('¿Confirmar Check-in para este boleto?')) {
-    await window.api.realizarCheckIn(id);
-    customAlert('Check-in realizado correctamente');
-    renderPage('boletos');
+  const resultadocheck = window.api.revisarBoleto(id);
+  console.log(resultadocheck);
+  if(resultadocheck == "Emitido"){
+        customAlert('Check-in ya realizado para este boleto');
+        return;
+      }
+      else{
+    try {
+        
+        // Usamos AWAIT para detener la ejecución y esperar la respuesta del modal.
+        const mensaje = '¿Confirma realizar el Check-in para este boleto?';
+        const confirmado = await customConfirmAsync(mensaje); // Debe existir esta función en tu código
+        
+        if (confirmado) {
+            // El usuario hizo clic en "Aceptar"
+            await window.api.realizarCheckIn(id);
+            customAlert('Check-in realizado correctamente');
+            renderPage('boletos');
+        } else {
+            // El usuario hizo clic en "Cancelar"
+            customAlert('Check-in cancelado.');
+        }
+      
+    } catch (error) {
+        console.error("Error al realizar Check-in:", error);
+        customAlert(`Ocurrió un error: ${error.message}`);
+    }
   }
+};
+
+window.cancelarBoleto = async (id) => {
+    try {
+        
+        // Usamos AWAIT para detener la ejecución y esperar la respuesta del modal.
+        const mensaje = '¿Quiere cancelar este boleto?';
+        const confirmado = await customConfirmAsync(mensaje); // Debe existir esta función en tu código
+        
+        if (confirmado) {
+            // El usuario hizo clic en "Aceptar"
+            await window.api.cancelarBoleto(id);
+            customAlert('Boleto cancelado correctamente');
+            renderPage('boletos');
+        } else {
+            // El usuario hizo clic en "Cancelar"
+            customAlert('Cancelacion super cancelada');
+        }
+      
+    } catch (error) {
+        console.error("Error al realizar Check-in:", error);
+        customAlert(`Ocurrió un error: ${error.message}`);
+    }
 };
 
 window.verHistorial = async (id) => {
@@ -683,14 +782,6 @@ window.showRegistrarAvion = () => {
         <div class="form-group"><label>Aerolínea</label><input id="a-aerolinea" class="form-control"></div>
         <div class="form-group"><label>Capacidad</label><input type="number" id="a-capacidad" class="form-control"></div>
         <div class="form-group"><label>Peso Máximo a Cargar</label><input type="number" id="a-capacidadCargaMaxima" class="form-control"></div>
-        <div class="form-group">
-          <label>Estado</label>
-          <select id="a-estado" class="form-control">
-            <option>En Uso</option>
-            <option>En Espera</option>
-            <option>En Mantenimiento</option>
-          </select>
-        </div>
         <button class="btn btn-primary mt-2" onclick="submitAvion()">Guardar</button>
     `;
   showModal('Registrar Avión', html);
@@ -701,11 +792,10 @@ window.submitAvion = async () => {
     modelo: document.getElementById('a-modelo').value.trim(),
     aerolinea: document.getElementById('a-aerolinea').value.trim(),
     capacidad_pasajeros: document.getElementById('a-capacidad').value,
-    pesoCargaM1aximo : document.getElementById('a-capacidadCargaMaxima').value,
-    estado : document.getElementById('a-estado').value
+    pesoCargaMaximo : document.getElementById('a-capacidadCargaMaxima').value,
   };
 
-  if (!data.modelo || !data.aerolinea || !data.capacidad_pasajeros || !data.pesoCargaMaximo || !data.estado) {
+  if (!data.modelo || !data.aerolinea || !data.capacidad_pasajeros || !data.pesoCargaMaximo) {
     customAlert('Por favor, complete todos los campos');
     return;
   }
@@ -813,8 +903,8 @@ window.showRegistrarEquipaje = async () => {
   const html = `
         <div class="form-group"><label>Pasajero al que le corresponde</label><select id="eq-pasajero" class="form-control">${options}</select></div>
         <div class="form-group"><label>Peso</label><input type="number" id="eq-peso" class="form-control"></div>
-        <div class="form-group"><label>Estado</label><select id="eq-estado" class="form-control">
-            <option>Abordando</option><option>Abordo</option><option>Descargando</option><option>Entregado</option><option>Extraviado</option>
+        <div class="form-group"><label>Estado</label><select id="eq-estado" class="form-control" disabled>
+            <option>Abordando</option>
         </select></div>
         <button class="btn btn-primary mt-2" onclick="submitEquipaje()">Registrar</button>
     `;
@@ -840,7 +930,127 @@ window.submitEquipaje = async () => {
 
   await window.api.registrarEquipaje(data);
   closeModal();
-  renderPage('aviones');
+  renderPage('equipaje');
+};
+
+window.mostrarEquipajePorPasajero = (idPasajero) => {
+    // 1. Obtener la caché global de equipajes
+    const todosEquipajes = window.equipajesCache || []; 
+
+    // 2. Filtrar el equipaje
+    const equipajeFiltrado = todosEquipajes.filter(eq => eq.id_pasajero === idPasajero && (eq.estado === 'Abordando' || eq.estado === 'Abordo'));
+
+    // 3. Generar las nuevas filas HTML
+    const nuevasFilas = equipajeFiltrado.map(eq => `
+        <tr>
+            <td>${eq.id_equipaje}</td>
+            <td>${eq.id_pasajero}</td>
+            <td>${eq.peso}</td>
+            <td>${eq.estado}</td>
+        </tr>
+    `).join('');
+    
+    // Si no hay equipaje, mostrar un mensaje
+    const contenidoFinal = nuevasFilas.length > 0 
+        ? nuevasFilas 
+        : `<tr><td colspan="4" class="text-center">No hay equipaje registrado para el pasajero ${idPasajero}.</td></tr>`;
+
+    // 4. Insertar el nuevo contenido en el tbody de la tabla inferior
+    const tbodyEquipaje = document.getElementById('equipaje-body');
+    if (tbodyEquipaje) {
+        tbodyEquipaje.innerHTML = contenidoFinal;
+    }
+};
+
+window.mostrarEquipajeEntregadoExtraviado = (idPasajero) => {
+    // 1. Obtener la caché global de equipajes
+    const todosEquipajes = window.equipajesCache2 || []; 
+
+    // 2. Filtrar el equipaje
+    const equipajeFiltrado = todosEquipajes.filter(eq => eq.id_pasajero === idPasajero && (eq.estado === 'Para recoger' ||eq.estado === 'Entregado' || eq.estado === 'Extraviado' ));
+
+    // 3. Generar las nuevas filas HTML
+    const nuevasFilas = equipajeFiltrado.map(eq => `
+        <tr>
+            <td>${eq.id_equipaje}</td>
+            <td>${eq.id_pasajero}</td>
+            <td>${eq.peso}</td>
+            <td>${eq.estado}</td>
+            <td><button class="btn btn-sm btn-primary" onclick="confirmarEntrega(${eq.id_equipaje})">Confirmar Entrega</button>
+            <button class="btn btn-sm btn-primary" onclick="confirmarExtravio(${eq.id_equipaje})">Reportar Extravio</button></td>
+        </tr>
+    `).join('');
+    
+    // Si no hay equipaje, mostrar un mensaje
+    const contenidoFinal = nuevasFilas.length > 0 
+        ? nuevasFilas 
+        : `<tr><td colspan="4" class="text-center">No hay equipaje registrado para el pasajero ${idPasajero}.</td></tr>`;
+
+    // 4. Insertar el nuevo contenido en el tbody de la tabla inferior
+    const tbodyEquipaje = document.getElementById('equipaje-body2');
+    if (tbodyEquipaje) {
+        tbodyEquipaje.innerHTML = contenidoFinal;
+    }
+};
+
+
+window.eliminarEquipaje = async (id) => {
+    try {
+        // Usamos AWAIT con el adaptador asíncrono.
+        // El código se detendrá aquí hasta que el usuario haga clic en Aceptar o Cancelar.
+        const mensaje = '¿Está seguro de que desea eliminar este equipaje de forma permanente? Esta acción no se puede deshacer.';
+        const confirmado = await customConfirmAsync(mensaje); // Llama a la nueva función
+
+        if (confirmado) {
+            await window.api.eliminarEquipaje(id);
+            customAlert('Equipaje eliminado correctamente');
+            renderPage('equipaje');
+        } else {
+            // El usuario hizo clic en Cancelar (confirmado es false)
+            customAlert('Eliminación de equipaje cancelada.');
+        }
+    } catch (error) {
+        console.error("Error al eliminar equipaje:", error);
+        customAlert(`Ocurrió un error al eliminar el equipaje: ${error.message}`);
+    }
+};
+
+window.confirmarEntrega = async (id) => {
+    try {
+        // Usamos AWAIT con el adaptador asíncrono.
+        // El código se detendrá aquí hasta que el usuario haga clic en Aceptar o Cancelar.
+        const mensaje = '¿Este equipaje ha sido entregado al pasajero?';
+        const confirmado = await customConfirmAsync(mensaje); // Llama a la nueva función
+
+        if (confirmado) {
+            await window.api.confirmarEntregaEquipaje(id);
+            customAlert('Equipaje entregado correctamente');
+            renderPage('equipaje');
+        } else {
+        }
+    } catch (error) {
+        console.error("Error al entregar el equipaje:", error);
+        customAlert(`Ocurrió un error al entregar el equipaje: ${error.message}`);
+    }
+};
+
+window.confirmarExtravio = async (id) => {
+    try {
+        // Usamos AWAIT con el adaptador asíncrono.
+        // El código se detendrá aquí hasta que el usuario haga clic en Aceptar o Cancelar.
+        const mensaje = '¿Este equipaje ha sido extraviado?';
+        const confirmado = await customConfirmAsync(mensaje); // Llama a la nueva función
+
+        if (confirmado) {
+            await window.api.confirmarExtravioEquipaje(id);
+            customAlert('Equipaje reportado como extraviado');
+            renderPage('equipaje');
+        } else {
+        }
+    } catch (error) {
+        console.error("Error al extraviar el equipaje:", error);
+        customAlert(`Ocurrió un error al extraviar el equipaje: ${error.message}`);
+    }
 };
 
 // Modal Logic

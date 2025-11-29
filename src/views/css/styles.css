@@ -168,6 +168,15 @@ body {
     transition: all 0.3s ease;
 }
 
+.clickable-row:hover {
+    cursor: pointer;
+    background-color: #f0f0f0; /* Fondo más claro al pasar el ratón */
+}
+
+.clickable-row.selected {
+    background-color: #d1e7dd; /* Color de éxito para la fila seleccionada */
+    font-weight: bold;
+}
 .navbar {
     background: linear-gradient(135deg, var(--color-primary), var(--color-deep));
     color: white;

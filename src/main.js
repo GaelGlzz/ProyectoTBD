@@ -103,6 +103,16 @@ ipcMain.handle('getPasajeros', async () => {
   });
 });
 
+ipcMain.handle('getPasajerosEquipaje', async () => {
+  return new Promise((resolve, reject) => {
+    db.query("SELECT * FROM pasajero_con_equipaje", (error, results) => {
+      if (error) reject(error);
+      else resolve(results);
+    });
+  });
+});
+
+
 ipcMain.handle('getAviones', async () => {
   return new Promise((resolve, reject) => {
     db.query("SELECT * FROM avion ORDER BY aerolinea, modelo", (error, results) => {
@@ -165,6 +175,24 @@ ipcMain.handle('getUltimoAeropuertoAvion', async (event, idAvion) => {
             }
         });
     });
+});
+
+ipcMain.handle('revisarBoleto', async (event, idBoleto) => {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT estado FROM boleto WHERE id_boleto = ?', [idBoleto], (err, res) => {
+      if (err) reject(err);
+      else resolve (res[0].estado);
+    });
+  });
+});
+
+ipcMain.handle('revisarVuelo', async (event, idVuelo) => {
+  return new Promise((resolve, reject) => {
+    db.query('SELECT estado FROM vuelo WHERE id_vuelo = ?', [idVuelo], (err, res) => {
+      if (err) reject(err);
+      else resolve (res[0].estado);
+    });
+  });
 });
 // ========================
 // CREATE / UPDATE
@@ -242,6 +270,16 @@ ipcMain.handle('registrarEquipaje', async (event, data) => {
   });
 });
 
+ipcMain.handle('eliminarEquipaje', async (event, data) => {
+  return new Promise((resolve, reject) => {
+    db.query('DELETE FROM equipaje WHERE id_equipaje = ?', data, (err, res) => {
+      if (err) reject(err);
+      else resolve({ id: res.insertId, message: 'Equipaje eliminado' });
+    });
+  });
+});
+
+
 ipcMain.handle('emitirBoleto', async (event, data) => {
   return new Promise((resolve, reject) => {
     // data: { id_pasajero, id_vuelo, precio, terminal, asiento } 
@@ -254,10 +292,39 @@ ipcMain.handle('emitirBoleto', async (event, data) => {
   });
 });
 
+ipcMain.handle('cancelarBoleto', async (event, id) => {
+  return new Promise((resolve, reject) => {
+    db.query('DELETE FROM boleto WHERE id_boleto = ?', id, (err, res) => {
+      if (err) reject(err);
+      else resolve({ id: res.insertId, message: 'Boleto eliminado' });
+    });
+  });
+});
+
 ipcMain.handle('realizarCheckIn', async (event, idBoleto) => {
   return new Promise((resolve, reject) => {
-    // Since boleto table doesn't have estado column, just return success
-    resolve({ message: 'Check-in realizado correctamente', id_boleto: idBoleto });
+    db.query('UPDATE boleto SET estado = "Emitido" WHERE id_boleto = ?', [idBoleto], (err, res) => {
+      if (err) reject(err);
+      else resolve ({ message: 'Check-in realizado correctamente', id_boleto: idBoleto });
+    });
+  });
+});
+
+ipcMain.handle('confirmarEntregaEquipaje', async (event, id) => {
+  return new Promise((resolve, reject) => {
+    db.query('UPDATE equipaje SET estado = "Entregado" WHERE id_equipaje = ?', [id], (err, res) => {
+      if (err) reject(err);
+      else resolve ({ message: 'Entrega realizada correctamente', id_equipaje: id });
+    });
+  });
+});
+
+ipcMain.handle('confirmarExtravioEquipaje', async (event, id) => {
+  return new Promise((resolve, reject) => {
+    db.query('UPDATE equipaje SET estado = "Extraviado" WHERE id_equipaje = ?', [id], (err, res) => {
+      if (err) reject(err);
+      else resolve ({ message: 'Extravio confirmado', id_equipaje: id });
+    });
   });
 });
 
