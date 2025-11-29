@@ -119,11 +119,13 @@ REPLACE INTO `equipaje` (`id_equipaje`, `id_pasajero`, `peso`, `estado`) VALUES
 	(10, 3, 123.00, 'Para recoger');
 
 -- Dumping structure for function aerocontrol.obtenerTipoPasajero
-DROP FUNCTION IF EXISTS `obtenerTipoPasajero`;
-DELIMITER //
-CREATE FUNCTION `obtenerTipoPasajero`(p_idPasajero INT
-) RETURNS varchar(20) CHARSET utf8mb4 COLLATE utf8mb4_general_ci
-    READS SQL DATA
+-- 1. FUNCIÓN PARA OBTENER EL TIPO DE PASAJERO
+DROP FUNCTION IF EXISTS obtenerTipoPasajero;
+CREATE FUNCTION obtenerTipoPasajero(
+    p_idPasajero INT
+) 
+RETURNS VARCHAR(20)
+READS SQL DATA -- Añadir READS SQL DATA es una buena práctica
 BEGIN
     DECLARE v_edad INT;
     DECLARE p_tipo VARCHAR(20);
@@ -147,11 +149,13 @@ END//
 DELIMITER ;
 
 -- Dumping structure for function aerocontrol.obtener_descuento_boleto
-DROP FUNCTION IF EXISTS `obtener_descuento_boleto`;
-DELIMITER //
-CREATE FUNCTION `obtener_descuento_boleto`(idBoleto INT
-) RETURNS decimal(10,2)
-    READS SQL DATA
+-- 2. FUNCIÓN PARA OBTENER EL PRECIO CON DESCUENTO
+DROP FUNCTION IF EXISTS obtener_descuento_boleto;
+CREATE FUNCTION obtener_descuento_boleto(
+    idBoleto INT
+) 
+RETURNS DECIMAL(10, 2) -- Definir la precisión para DECIMAL
+READS SQL DATA
 BEGIN
     
     DECLARE b_tipoPasajero VARCHAR(20);
@@ -233,6 +237,7 @@ CREATE TABLE IF NOT EXISTS `vuelo` (
   `id_aeropuerto_origen` int(11) DEFAULT NULL,
   `id_aeropuerto_destino` int(11) DEFAULT NULL,
   `id_avion` int(11) DEFAULT NULL,
+  `precio` DECIMAL NOT NULL,
   `estado` varchar(50) DEFAULT NULL,
   PRIMARY KEY (`id_vuelo`),
   KEY `id_aeropuerto_origen` (`id_aeropuerto_origen`),
@@ -618,9 +623,7 @@ GROUP BY p.id_pasajero, p.nombre
 -- Removing temporary table and create final VIEW structure
 DROP TABLE IF EXISTS `vuelos_a_abordar`;
 CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `vuelos_a_abordar` AS SELECT hora_salida,vuelo.id_avion,aeropuerto.nombre,vuelo.estado
-FROM vuelo INNER JOIN aeropuerto ON vuelo.id_aeropuerto_origen = aeropuerto.id_aeropuerto 
-;
-
+FROM vuelo INNER JOIN aeropuerto ON vuelo.id_aeropuerto_origen = aeropuerto.id_aeropuerto;
 /*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
 /*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
 /*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
