@@ -134,7 +134,7 @@ ipcMain.handle('getEquipaje', async () => {
 
 ipcMain.handle('getAeropuertos', async () => {
   return new Promise((resolve, reject) => {
-    db.query("SELECT * FROM aeropuerto ORDER BY pais, ciudad", (error, results) => {
+    db.query("SELECT * FROM aeropuerto ORDER BY id_aeropuerto", (error, results) => {
       if (error) reject(error);
       else resolve(results);
     });
@@ -346,7 +346,7 @@ ipcMain.handle('obtenertipoPasajero', async () => {
         SET @Id_vuelo = (SELECT id_vuelo FROM boleto WHERE id_boleto = @Id_boleto);
         SET @b= obtenerTipoPasajero(@Id_pasajero);
         UPDATE boleto SET tipoPasajero = @b WHERE id_boleto = @Id_boleto;
-        SET @precio = obtener_descuento_boleto(@Id_boleto,@Id_vuelo);
+        SET @precio = obtener_descuento_boleto(@Id_boleto);
         UPDATE boleto SET precio = @precio WHERE id_boleto = @Id_boleto
         `;
     db.query(sql, (err, res) => {

@@ -237,18 +237,19 @@ async function renderPage(page) {
           <td>${a.id_aeropuerto}</td>
           <td>${a.nombre}</td>
           <td>${a.pais}</td>
+          <td>${a.estado}</td>
           <td>${a.ciudad}</td>
         </tr>
       `).join('');
-
+//<button class="btn btn-success" onclick="showRegistrarAeropuerto()">+ Nuevo Aeropuerto</button> //
       content.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3>Administración de Aeropuertos</h3>
-            <button class="btn btn-success" onclick="showRegistrarAeropuerto()">+ Nuevo Aeropuerto</button>
+           
         </div> <br>
         <table class="table">
           <thead>
-            <tr><th>ID</th><th>Nombre</th><th>País</th><th>Ciudad</th></tr>
+            <tr><th>ID</th><th>Nombre</th><th>País</th><th>Estado</th><th>Ciudad</th></tr>
           </thead>
           <tbody>${rows}</tbody>
         </table>
@@ -927,6 +928,7 @@ window.showRegistrarEquipaje = async () => {
 };
 
 window.submitEquipaje = async () => {
+  try {
   const data = {
     id_pasajero: document.getElementById('eq-pasajero').value.trim(),
     peso: document.getElementById('eq-peso').value.trim(),
@@ -946,6 +948,19 @@ window.submitEquipaje = async () => {
   await window.api.registrarEquipaje(data);
   closeModal();
   renderPage('equipaje');
+  } catch (error) {
+    console.error('Error al emitir equipaje:', error);
+        // Obtener el mensaje de error. Si tu backend lo devuelve como un objeto Error, 
+        // el mensaje de error del trigger estará en 'error.message'.
+        const errorMessage = error.message || 'Error desconocido al registrar el equipaje.';
+        // Si el mensaje de error contiene la palabra clave del trigger, mostrarla.
+        if (errorMessage.includes('no tiene un boleto activo/programado para registrar equipaje')) {
+             customAlert(errorMessage); 
+        } else {
+             // Para otros errores (conexión, etc.)
+             customAlert(`Error de registro: ${errorMessage}`);
+        }
+  }
 };
 
 window.mostrarEquipajePorPasajero = (idPasajero) => {
