@@ -120,6 +120,7 @@ REPLACE INTO `equipaje` (`id_equipaje`, `id_pasajero`, `peso`, `estado`) VALUES
 
 -- Dumping structure for function aerocontrol.obtenerTipoPasajero
 -- 1. FUNCIÓN PARA OBTENER EL TIPO DE PASAJERO
+DELIMITER //
 DROP FUNCTION IF EXISTS obtenerTipoPasajero;
 CREATE FUNCTION obtenerTipoPasajero(
     p_idPasajero INT
@@ -150,6 +151,7 @@ DELIMITER ;
 
 -- Dumping structure for function aerocontrol.obtener_descuento_boleto
 -- 2. FUNCIÓN PARA OBTENER EL PRECIO CON DESCUENTO
+DELIMITER //
 DROP FUNCTION IF EXISTS obtener_descuento_boleto;
 CREATE FUNCTION obtener_descuento_boleto(
     idBoleto INT
