@@ -45,7 +45,16 @@ ipcMain.handle('login', async (event, username, password) => {
         reject(err);
       } else {
         if (results.length > 0) {
-          resolve({ success: true, user: results[0] });
+          const user = results[0];
+          resolve({
+            success: true,
+            user: {
+              id_usuario: user.id_usuario,
+              nombre: user.nombre,
+              usuario: user.usuario,
+              role: user.nombre  // nombre contains: Admin, Operativo, or Analista
+            }
+          });
         } else {
           resolve({ success: false, message: 'Credenciales incorrectas' });
         }

@@ -52,16 +52,39 @@ async function renderLogin() {
 
 // =============== DASHBOARD ==================
 function renderDashboard() {
-  const navbar = `
-      <a href="#" class="nav-link" data-page="vuelos">Control de Vuelos</a> <br>
-      <a href="#" class="nav-link" data-page="pasajeros">Gestión de Pasajeros</a> <br>
-      <a href="#" class="nav-link" data-page="equipaje">Gestión de Equipaje</a> <br>
-      <a href="#" class="nav-link" data-page="boletos">Manejo de Boletos</a> <br>
-      <a href="#" class="nav-link" data-page="aviones">Gestión de Aviones</a> <br>
-      <a href="#" class="nav-link" data-page="aeropuertos">Admin. Aeropuertos</a> <br>
-      <a href="#" class="nav-link" data-page="reportes">Generar Reportes</a> <br>
-      <a href="#" class="nav-link" id="logout-btn" style="color:red;">Cerrar Sesión</a> <br>
-  `;
+  const userRole = usuarioActual.role;
+
+  let navbarItems = [];
+  if (userRole === 'Admin') {
+    navbarItems = [
+      '<a href="#" class="nav-link" data-page="vuelos">Control de Vuelos</a>',
+      '<a href="#" class="nav-link" data-page="pasajeros">Gestión de Pasajeros</a>',
+      '<a href="#" class="nav-link" data-page="equipaje">Gestión de Equipaje</a>',
+      '<a href="#" class="nav-link" data-page="boletos">Manejo de Boletos</a>',
+      '<a href="#" class="nav-link" data-page="aviones">Gestión de Aviones</a>',
+      '<a href="#" class="nav-link" data-page="aeropuertos">Admin. Aeropuertos</a>',
+      '<a href="#" class="nav-link" data-page="reportes">Generar Reportes</a>'
+    ];
+  } else if (userRole === 'Operativo') {
+    navbarItems = [
+      '<a href="#" class="nav-link" data-page="vuelos">Control de Vuelos</a>',
+      '<a href="#" class="nav-link" data-page="pasajeros">Gestión de Pasajeros</a>',
+      '<a href="#" class="nav-link" data-page="equipaje">Gestión de Equipaje</a>',
+      '<a href="#" class="nav-link" data-page="boletos">Manejo de Boletos</a>',
+    ];
+  } else if (userRole === 'Analista') {
+    navbarItems = [
+      '<a href="#" class="nav-link" data-page="vuelos">Control de Vuelos</a>',
+      '<a href="#" class="nav-link" data-page="pasajeros">Gestión de Pasajeros</a>',
+      '<a href="#" class="nav-link" data-page="boletos">Manejo de Boletos</a>',
+      '<a href="#" class="nav-link" data-page="aviones">Gestión de Aviones</a>',
+      '<a href="#" class="nav-link" data-page="aeropuertos">Admin. Aeropuertos</a>',
+      '<a href="#" class="nav-link" data-page="reportes">Generar Reportes</a>'
+    ];
+  }
+
+  const navbar = navbarItems.join(' <br>\n      ') + ' <br>\n      <a href="#" class="nav-link" id="logout-btn" style="color:red;">Cerrar Sesión</a> <br>';
+
 
   appContainer.innerHTML = `
     <div class="dashboard-container">
@@ -104,58 +127,64 @@ async function renderPage(page) {
     if (page === 'vuelos') {
       const vuelos = await window.api.getVuelos();
       let rows = vuelos.map(v => `
-        <tr>
-          <td>${v.id_vuelo}</td>
-          <td>${v.id_avion}</td>
-          <td>${v.origen_ciudad} -> ${v.destino_ciudad}</td>
-          <td>${new Date(v.hora_salida).toLocaleString()}</td>
-          <td>${new Date(v.hora_llegada).toLocaleString()}</td>
-          <td>$${v.precio}</td>
-          <td>${v.estado}</td>
-        </tr>
-      `).join('');
-
+    <tr>
+      <td>${v.id_vuelo}</td>
+      <td>${v.id_avion}</td>
+      <td>${v.origen_ciudad} -> ${v.destino_ciudad}</td>
+      <td>${new Date(v.hora_salida).toLocaleString()}</td>
+      <td>${new Date(v.hora_llegada).toLocaleString()}</td>
+      <td>$${v.precio}</td>
+      <td>${v.estado}</td>
+    </tr>
+  `).join('');
+      // Ocultar botones para Analista
+      const actionButtons = usuarioActual.role === 'Analista' ? '' : `
+    <button class="btn btn-success" onclick="showRegistrarVuelo()">+ Nuevo Vuelo</button>
+    <button class="btn btn-warning" onclick="showModificarVuelo()">! Modificar Vuelo</button>
+    <button class="btn btn-danger" onclick="showCancelarVuelo()">! Cancelar Vuelo</button>
+  `;
       content.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3>Control de Vuelos</h3>
-            <button class="btn btn-success" onclick="showRegistrarVuelo()">+ Nuevo Vuelo</button>
-            <button class="btn btn-warning" onclick="showModificarVuelo()">! Modificar Vuelo</button>
-            <button class="btn btn-danger" onclick="showCancelarVuelo()">! Cancelar Vuelo</button>
-        </div> <br>
-        <table class="table">
-          <thead>
-            <tr><th>ID</th><th>Avion</th><th>Ruta</th><th>Salida</th><th>LLegada</th><th>Precio</th><th>Estado</th></tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      `;
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>Control de Vuelos</h3>
+        ${actionButtons}
+    </div> <br>
+    <table class="table">
+      <thead>
+        <tr><th>ID</th><th>Avion</th><th>Ruta</th><th>Salida</th><th>LLegada</th><th>Precio</th><th>Estado</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
     } else if (page === 'pasajeros') {
       const pasajeros = await window.api.getPasajeros();
       let rows = pasajeros.map(p => `
-        <tr>
-          <td>${p.id_pasajero}</td>
-          <td>${p.nombre} ${p.apellido}</td>
-          <td>${p.edad} años</td>
-          <td>${p.nacionalidad}</td>
-          <td>${p.correo}</td>
-          <td>
-            <button class="btn btn-sm btn-info" onclick="verHistorial(${p.id_pasajero})">Historial</button>
-          </td>
-        </tr>
-      `).join('');
-
+    <tr>
+      <td>${p.id_pasajero}</td>
+      <td>${p.nombre} ${p.apellido}</td>
+      <td>${p.edad} años</td>
+      <td>${p.nacionalidad}</td>
+      <td>${p.correo}</td>
+      <td>
+        <button class="btn btn-sm btn-info" onclick="verHistorial(${p.id_pasajero})">Historial</button>
+      </td>
+    </tr>
+  `).join('');
+      // Ocultar botón para Analista
+      const actionButtons = usuarioActual.role === 'Analista' ? '' : `
+    <button class="btn btn-success" onclick="showRegistrarPasajero()">+ Nuevo Pasajero</button>
+  `;
       content.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3>Gestión de Pasajeros</h3>
-            <button class="btn btn-success" onclick="showRegistrarPasajero()">+ Nuevo Pasajero</button>
-        </div> <br>
-        <table class="table">
-          <thead>
-            <tr><th>ID</th><th>Nombre</th><th>Edad</th><th>Nacionalidad</th><th>Correo</th><th>Acciones</th></tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      `;
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>Gestión de Pasajeros</h3>
+        ${actionButtons}
+    </div> <br>
+    <table class="table">
+      <thead>
+        <tr><th>ID</th><th>Nombre</th><th>Edad</th><th>Nacionalidad</th><th>Correo</th><th>Acciones</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
     } else if (page === 'boletos') {
       const boletos = await window.api.getBoletos();
       const boletosParaCheckIn = boletos.filter(b => b.estado === 'No emitido');
@@ -207,30 +236,33 @@ async function renderPage(page) {
     } else if (page === 'aviones') {
       const aviones = await window.api.getAviones();
       let rows = aviones.map(a => `
-        <tr>
-          <td>${a.id_avion}</td>
-          <td>${a.modelo}</td>
-          <td>${a.aerolinea}</td>
-          <td>${a.capacidad_pasajeros}</td>
-          <td>${a.pesoCargaMaximo}</td>
-          <td>${a.CargaActual}</td>
-          <td>${a.estado}</td>
-        </tr>
-      `).join('');
-
+    <tr>
+      <td>${a.id_avion}</td>
+      <td>${a.modelo}</td>
+      <td>${a.aerolinea}</td>
+      <td>${a.capacidad_pasajeros}</td>
+      <td>${a.pesoCargaMaximo}</td>
+      <td>${a.CargaActual}</td>
+      <td>${a.estado}</td>
+    </tr>
+  `).join('');
+      // Ocultar botones para Analista
+      const actionButtons = usuarioActual.role === 'Analista' ? '' : `
+    <button class="btn btn-success" onclick="showRegistrarAvion()">+ Nuevo Avión</button>
+    <button class="btn btn-warning" onclick="showMantenimiento()">Mantenimiento</button>
+  `;
       content.innerHTML = `
-        <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3>Gestión de Aviones</h3>
-            <button class="btn btn-success" onclick="showRegistrarAvion()">+ Nuevo Avión</button>
-            <button class="btn btn-warning" onclick="showMantenimiento()">Mantenimiento</button>
-        </div> <br>
-        <table class="table">
-          <thead>
-            <tr><th>ID</th><th>Modelo</th><th>Aerolínea</th><th>Capacidad</th><th>Peso de Carga Maximo</th><th>Carga Actual</th><th>Estado</th></tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      `;
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h3>Gestión de Aviones</h3>
+        ${actionButtons}
+    </div> <br>
+    <table class="table">
+      <thead>
+        <tr><th>ID</th><th>Modelo</th><th>Aerolínea</th><th>Capacidad</th><th>Peso de Carga Maximo</th><th>Carga Actual</th><th>Estado</th></tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
     } else if (page === 'aeropuertos') {
       const aeropuertos = await window.api.getAeropuertos();
       let rows = aeropuertos.map(a => `
