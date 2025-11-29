@@ -399,7 +399,7 @@ ipcMain.handle('generarReporteVuelosAeropuerto', async (event, idAeropuerto) => 
 
         doc.pipe(stream);
 
-        doc.fontSize(20).text(`Reporte de Vuelos por Aeropuerto ${idAeropuerto}`, { align: 'center' });
+        doc.fontSize(20).text(`Reporte de Vuelos por Aeropuerto ID: ${idAeropuerto}`, { align: 'center' });
         doc.moveDown();
 
         if (results.length === 0) {
