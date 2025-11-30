@@ -187,6 +187,7 @@ async function renderPage(page) {
     } else if (page === 'boletos') {
       const userRole = usuarioActual.role;
       const disableCheckIn = userRole === 'Analista' ? 'disabled' : '';
+      const hideEmitirBoleto = userRole === 'Analista' ? 'style="display:none;"' : '';
       const boletos = await window.api.getBoletos();
       const boletosParaCheckIn = boletos.filter(b => b.estado === 'No emitido');
       const demasBoletos = boletos.filter(b => b.estado !== 'No emitido');
@@ -220,7 +221,7 @@ async function renderPage(page) {
       content.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center;">
             <h3>Manejo de Boletos</h3>
-            <button class="btn btn-success" onclick="showEmitirBoleto()">+ Emitir Boleto</button>
+            <button class="btn btn-success" onclick="showEmitirBoleto()"${hideEmitirBoleto}>+ Emitir Boleto</button>
         </div> <br>
         <table id="tablaBoletos1" class="table">
           <thead>
