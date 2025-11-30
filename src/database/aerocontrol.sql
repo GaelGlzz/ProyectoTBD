@@ -604,7 +604,8 @@ DELIMITER ;
 DELIMITER //
 DROP FUNCTION IF EXISTS obtener_descuento_boleto;
 CREATE FUNCTION obtener_descuento_boleto(
-    idBoleto INT
+    idBoleto INT,
+    idVuelo INT
 ) 
 RETURNS DECIMAL(10, 2) -- Definir la precisión para DECIMAL
 READS SQL DATA

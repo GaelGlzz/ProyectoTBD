@@ -122,7 +122,6 @@ function renderDashboard() {
 async function renderPage(page) {
   const content = document.getElementById('content-area');
   content.innerHTML = '<p>Cargando datos...</p>';
-
   try {
     if (page === 'vuelos') {
       const vuelos = await window.api.getVuelos();
@@ -186,6 +185,8 @@ async function renderPage(page) {
     </table>
   `;
     } else if (page === 'boletos') {
+      const userRole = usuarioActual.role;
+      const disableCheckIn = userRole === 'Analista' ? 'disabled' : '';
       const boletos = await window.api.getBoletos();
       const boletosParaCheckIn = boletos.filter(b => b.estado === 'No emitido');
       const demasBoletos = boletos.filter(b => b.estado !== 'No emitido');
@@ -199,12 +200,12 @@ async function renderPage(page) {
           <td>${b.asiento}</td>
           <td>${b.terminal}</td>
           <td>
-            <button class="btn btn-sm btn-primary" onclick="realizarCheckIn(${b.id_boleto})">Check-in</button>
+            <button id='btnCheckIn' class="btn btn-sm btn-primary" onclick="realizarCheckIn(${b.id_boleto}) ${disableCheckIn}">Check-in</button>
             <button class="btn btn-sm btn-secondary" onclick="cancelarBoleto(${b.id_boleto})">Cancelar</button>
           </td>
         </tr>
-      `).join('');
-
+      `
+    ).join('');
       let rows2 = demasBoletos.map(b => `
         <tr>
           <td>${b.id_boleto}</td>
@@ -221,7 +222,7 @@ async function renderPage(page) {
             <h3>Manejo de Boletos</h3>
             <button class="btn btn-success" onclick="showEmitirBoleto()">+ Emitir Boleto</button>
         </div> <br>
-        <table class="table">
+        <table id="tablaBoletos1" class="table">
           <thead>
             <tr><th>ID</th><th>Pasajero</th><th>Vuelo</th><th>Tipo de Pasajero</th><th>Precio</th><th>Asiento</th><th>Terminal</th><th>Acciones</th></tr>
           </thead>
@@ -1014,7 +1015,12 @@ window.submitEquipaje = async () => {
     }
 
     if (parseInt(data.peso) <= 0) {
-      customAlert('La capacidad debe ser mayor a 0');
+      customAlert('El peso debe ser mayor a 0');
+      return;
+    }
+
+    if (parseInt(data.peso) > 30) {
+      customAlert('El peso debe ser menor o igual que 30');
       return;
     }
 
