@@ -168,7 +168,7 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
 -- Dumping data for table aerocontrol.usuarios: ~3 rows (approximately)
 REPLACE INTO `usuarios` (`id_usuario`, `nombre`, `usuario`, `password`, `rol`) VALUES
 	(1, 'Admin', 'admin', 'admin123', 'Administrador'),
-	(2, 'Usuario General', 'usuario1', 'user123', 'UsuarioGeneral'),
+	(2, 'Operativo', 'operativo', 'operativo123', 'PersonalOperativo'),
 	(3, 'Analista', 'analista1', 'analyst123', 'Analista');
 
 -- Dumping structure for table aerocontrol.vuelo
