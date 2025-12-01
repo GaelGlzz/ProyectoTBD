@@ -223,6 +223,56 @@ CREATE TABLE `vuelos_a_abordar` (
 	`estado` VARCHAR(1) NULL COLLATE 'utf8mb4_general_ci'
 ) ENGINE=MyISAM;
 
+-- Dumping structure for trigger aerocontrol.tr_verificar_peso_maximo_equipaje
+DROP TRIGGER IF EXISTS `tr_verificar_peso_maximo_equipaje`;
+SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
+DELIMITER //
+CREATE TRIGGER tr_verificar_peso_maximo_equipaje
+BEFORE INSERT ON EQUIPAJE
+FOR EACH ROW
+BEGIN
+    DECLARE v_carga_actual DECIMAL(10, 2);
+    DECLARE v_carga_maxima DECIMAL(10, 2);
+    DECLARE v_id_avion INT;
+    DECLARE v_id_vuelo INT;
+    DECLARE msg_error VARCHAR(255);
+
+    -- 1. Obtener el ID del vuelo más reciente/activo del pasajero
+    SELECT id_vuelo INTO v_id_vuelo
+    FROM BOLETO
+    WHERE id_pasajero = NEW.id_pasajero
+    ORDER BY id_vuelo DESC
+    LIMIT 1;
+
+    -- Si el pasajero no tiene vuelo (manejo de error básico)
+    IF v_id_vuelo IS NULL THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ERROR: El pasajero no tiene un boleto activo para registrar equipaje.';
+    END IF;
+
+    -- 2. Obtener el ID del avión asociado y la carga máxima
+    SELECT A.id_avion, A.PesoCargaMaxima, A.CargaActual
+    INTO v_id_avion, v_carga_maxima, v_carga_actual
+    FROM AVION AS A
+    INNER JOIN VUELO AS V ON A.id_avion = V.id_avion
+    WHERE V.id_vuelo = v_id_vuelo;
+
+    -- 3. Verificar si el nuevo equipaje supera la capacidad
+    IF (v_carga_actual + NEW.peso) > v_carga_maxima THEN
+        
+        SET msg_error = CONCAT('ERROR DE CAPACIDAD: Lo sentimos, no se admite más equipaje. ', 
+                               'El peso total excedería la carga máxima de ', v_carga_maxima, ' Kg del avión.');
+        
+        -- Generar un error y abortar la operación INSERT.
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = msg_error;
+    END IF;
+    
+    -- Nota: Si la inserción es exitosa, el estado inicial del equipaje se puede establecer aquí si no lo haces en la aplicación:
+    -- SET NEW.estado = 'Registrado';
+
+END//
+DELIMITER ;
+SET SQL_MODE=@OLDTMP_SQL_MODE;
+
 -- Dumping structure for trigger aerocontrol.actualizar_carga_avion_despues_emitir_boleto
 DROP TRIGGER IF EXISTS `actualizar_carga_avion_despues_emitir_boleto`;
 SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
