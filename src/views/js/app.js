@@ -832,7 +832,9 @@ window.verHistorial = async (id) => {
 window.showRegistrarAvion = () => {
   const html = `
         <div class="form-group"><label>Modelo</label><input id="a-modelo" class="form-control"></div>
-        <div class="form-group"><label>Aerolínea</label><input id="a-aerolinea" class="form-control"></div>
+        <div class="form-group"><select id="a-aerolinea" class="form-control">
+            <option>Aeroméxico</option><option>Volaris</option><option>Viva Aerobus</option>
+        </select></div>
         <div class="form-group"><label>Capacidad</label><input type="number" id="a-capacidad" class="form-control"></div>
         <div class="form-group"><label>Peso Máximo a Cargar</label><input type="number" id="a-capacidadCargaMaxima" class="form-control"></div>
         <button class="btn btn-primary mt-2" onclick="submitAvion()">Guardar</button>
