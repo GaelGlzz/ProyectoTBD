@@ -1077,7 +1077,7 @@ window.mostrarEquipajeEntregadoExtraviado = (idPasajero) => {
   const todosEquipajes = window.equipajesCache2 || [];
 
   // 2. Filtrar el equipaje
-  const equipajeFiltrado = todosEquipajes.filter(eq => eq.id_pasajero === idPasajero && (eq.estado === 'Para recoger' || eq.estado === 'Entregado' || eq.estado === 'Extraviado'));
+  const equipajeFiltrado = todosEquipajes.filter(eq => eq.id_pasajero === idPasajero && (eq.estado === 'Para recoger'|| eq.estado === 'Extraviado'));
 
   // 3. Generar las nuevas filas HTML
   const nuevasFilas = equipajeFiltrado.map(eq => `
