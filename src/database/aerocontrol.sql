@@ -459,14 +459,6 @@ CREATE TRIGGER `actualizar_estado_avion_after_update` AFTER UPDATE ON `vuelo` FO
       SET estado = 'Invalido'
       WHERE id_vuelo = NEW.id_vuelo
       AND estado = 'No Emitido';
-      
-      UPDATE EQUIPAJE
-        SET estado = 'Entregado'
-        WHERE id_pasajero IN (
-            SELECT id_pasajero 
-            FROM BOLETO 
-            WHERE id_vuelo = NEW.id_vuelo
-        );
           
     END IF;
 
