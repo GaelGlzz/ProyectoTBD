@@ -37,6 +37,9 @@ async function renderLogin() {
       const result = await window.api.login(username, password);
       if (result.success) {
         usuarioActual = result.user;
+        console.log("--- DEBUG DE ROL ---");
+        console.log("Valor exacto de rol recibido:", usuarioActual.role);
+        console.log("---------------------");
         renderDashboard();
       } else {
         errorDiv.textContent = result.message;
@@ -53,7 +56,7 @@ async function renderLogin() {
 // =============== DASHBOARD ==================
 function renderDashboard() {
   const userRole = usuarioActual.role;
-
+  console.log('User Role:', userRole);
   let navbarItems = [];
   if (userRole === 'Admin') {
     navbarItems = [
@@ -65,7 +68,7 @@ function renderDashboard() {
       '<a href="#" class="nav-link" data-page="aeropuertos">Admin. Aeropuertos</a>',
       '<a href="#" class="nav-link" data-page="reportes">Generar Reportes</a>'
     ];
-  } else if (userRole === 'Operativo') {
+  } else if (userRole === 'Operador') {
     navbarItems = [
       '<a href="#" class="nav-link" data-page="vuelos">Control de Vuelos</a>',
       '<a href="#" class="nav-link" data-page="pasajeros">Gestión de Pasajeros</a>',
@@ -193,13 +196,7 @@ async function renderPage(page) {
       const demasBoletos = boletos.filter(b => b.estado !== 'No emitido');
       let rows = boletosParaCheckIn.map(b => `
         <tr>
-          <td>${b.id_boleto}</td>
-          <td>${b.nombre} ${b.apellido}</td>
-          <td>${b.origen} -> ${b.destino}</td>
-          <td>${b.tipoPasajero}</td>
-          <td>${b.precio}</td>
-          <td>${b.asiento}</td>
-          <td>${b.terminal}</td>
+
           <td>
             <button id='btnCheckIn' class="btn btn-sm btn-primary" onclick="realizarCheckIn(${b.id_boleto}) ${disableCheckIn}">Check-in</button>
             <button class="btn btn-sm btn-secondary" onclick="cancelarBoleto(${b.id_boleto})">Cancelar</button>
@@ -223,11 +220,6 @@ async function renderPage(page) {
             <h3>Manejo de Boletos</h3>
             <button class="btn btn-success" onclick="showEmitirBoleto()"${hideEmitirBoleto}>+ Emitir Boleto</button>
         </div> <br>
-        <table id="tablaBoletos1" class="table">
-          <thead>
-            <tr><th>ID</th><th>Pasajero</th><th>Vuelo</th><th>Tipo de Pasajero</th><th>Precio</th><th>Asiento</th><th>Terminal</th><th>Acciones</th></tr>
-          </thead>
-          <tbody>${rows}</tbody>
         <table class="table">
           <thead>
             <tr><th>ID</th><th>Pasajero</th><th>Vuelo</th><th>Asiento</th><th>Terminal</th><th>Estado</th></tr>
@@ -276,11 +268,11 @@ async function renderPage(page) {
           <td>${a.ciudad}</td>
         </tr>
       `).join('');
-      //<button class="btn btn-success" onclick="showRegistrarAeropuerto()">+ Nuevo Aeropuerto</button> //
+     
       content.innerHTML = `
         <div style="display:flex; justify-content:space-between; align-items:center;">
-            <h3>Administración de Aeropuertos</h3>
-           
+        <h3>Administración de Aeropuertos</h3> 
+        <button class="btn btn-success" onclick="showRegistrarAeropuerto()">+ Nuevo Aeropuerto</button>       
         </div> <br>
         <table class="table">
           <thead>

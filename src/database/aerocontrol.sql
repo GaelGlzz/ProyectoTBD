@@ -1,26 +1,8 @@
--- --------------------------------------------------------
--- Host:                         127.0.0.1
--- Server version:               10.4.32-MariaDB - mariadb.org binary distribution
--- Server OS:                    Win64
--- HeidiSQL Version:             12.10.0.7000
--- --------------------------------------------------------
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET NAMES utf8 */;
-/*!50503 SET NAMES utf8mb4 */;
-/*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
-/*!40103 SET TIME_ZONE='+00:00' */;
-/*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
-/*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
-/*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-
-
--- Dumping database structure for aerocontrol
 DROP DATABASE IF EXISTS `aerocontrol`;
-CREATE DATABASE IF NOT EXISTS `aerocontrol` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */;
+CREATE DATABASE IF NOT EXISTS `aerocontrol`;
 USE `aerocontrol`;
 
--- Dumping structure for table aerocontrol.aeropuerto
+/*Tabla Aeropuerto*/
 DROP TABLE IF EXISTS `aeropuerto`;
 CREATE TABLE IF NOT EXISTS `aeropuerto` (
   `id_aeropuerto` int(11) NOT NULL AUTO_INCREMENT,
@@ -31,7 +13,6 @@ CREATE TABLE IF NOT EXISTS `aeropuerto` (
   PRIMARY KEY (`id_aeropuerto`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table aerocontrol.aeropuerto: ~2 rows (approximately)
 REPLACE INTO `aeropuerto` (`id_aeropuerto`, `nombre`, `pais`, `estado`, `ciudad`) VALUES
 	(1, 'ketsakoatul', 'Mexico', 'Tamaulipas', 'Nuevo Laredo'),
 	(2, 'AIDMTR', 'Mexico', 'Nuevo Leon', 'Monterrey'),
@@ -41,7 +22,7 @@ REPLACE INTO `aeropuerto` (`id_aeropuerto`, `nombre`, `pais`, `estado`, `ciudad`
 	(6, 'Aeropuerto NOTNEMOS', 'Mexico', 'Estado de Mexico', 'CHIMALHUACAN'),
 	(7, 'Mangapius Flights', 'Mexico', 'Michoacan', 'TANGAMANDAPIO');
 
--- Dumping structure for table aerocontrol.avion
+/*Tabla Avion*/
 DROP TABLE IF EXISTS `avion`;
 CREATE TABLE IF NOT EXISTS `avion` (
   `id_avion` int(11) NOT NULL AUTO_INCREMENT,
@@ -58,7 +39,6 @@ CREATE TABLE IF NOT EXISTS `avion` (
   CONSTRAINT `id_ultimoAeropuerto` FOREIGN KEY (`id_ultimoAeropuerto`) REFERENCES `aeropuerto` (`id_aeropuerto`) ON DELETE NO ACTION ON UPDATE NO ACTION
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table aerocontrol.avion: ~6 rows (approximately)
 REPLACE INTO `avion` (`id_avion`, `modelo`, `capacidad_pasajeros`, `aerolinea`, `pesoCargaMaximo`, `CargaActual`, `id_ultimoAeropuerto`, `ultima_hora_llegada`, `estado`) VALUES
 	(1, '1', 100, '1', 500, 0, 1, '2026-01-01 19:22:00', 'En espera'),
 	(2, 'P3', 300, 'papichulo', 6000, 114, 1, '2025-12-12 19:08:00', 'En espera'),
@@ -67,64 +47,15 @@ REPLACE INTO `avion` (`id_avion`, `modelo`, `capacidad_pasajeros`, `aerolinea`, 
 	(5, '12', 3, '411', 406, 0, 2, '2025-11-30 19:42:00', 'En espera'),
 	(6, 'ad21', 2, '12', 64, 0, 2, '2025-11-30 18:28:00', 'En espera');
 
--- Dumping structure for table aerocontrol.boleto
-DROP TABLE IF EXISTS `boleto`;
-CREATE TABLE IF NOT EXISTS `boleto` (
-  `id_boleto` int(11) NOT NULL AUTO_INCREMENT,
-  `id_pasajero` int(11) DEFAULT NULL,
-  `tipoPasajero` varchar(30) NOT NULL,
-  `id_vuelo` int(11) DEFAULT NULL,
-  `precio` decimal(10,2) DEFAULT NULL,
-  `terminal` varchar(50) DEFAULT NULL,
-  `asiento` varchar(10) DEFAULT NULL,
-  `estado` varchar(20) DEFAULT 'No emitido',
-  PRIMARY KEY (`id_boleto`),
-  KEY `id_pasajero` (`id_pasajero`),
-  KEY `id_vuelo` (`id_vuelo`),
-  CONSTRAINT `boleto_ibfk_1` FOREIGN KEY (`id_pasajero`) REFERENCES `pasajero` (`id_pasajero`),
-  CONSTRAINT `boleto_ibfk_2` FOREIGN KEY (`id_vuelo`) REFERENCES `vuelo` (`id_vuelo`)
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- Dumping data for table aerocontrol.boleto: ~8 rows (approximately)
-REPLACE INTO `boleto` (`id_boleto`, `id_pasajero`, `tipoPasajero`, `id_vuelo`, `precio`, `terminal`, `asiento`, `estado`) VALUES
-	(7, 1, 'Normal', 18, 12312.00, 'aa', '11', 'Emitido'),
-	(8, 1, 'Normal', 18, 3.00, '12', '11', 'Emitido'),
-	(9, 1, 'Normal', 18, 500.00, 'aa', '1232', 'Invalido'),
-	(12, 2, 'Mayor de Edad', 20, 390.00, 'asd', '123', 'Invalido'),
-	(13, 1, 'Normal', 19, 134.00, '11', '11', 'Invalido'),
-	(15, 1, 'Normal', 20, 123.00, '123', '123', 'Emitido'),
-	(16, 1, 'Normal', 21, 1.00, '12', '12', 'Emitido'),
-	(17, 2, 'Mayor de Edad', 22, 6.50, 'A@', 'A$', 'Emitido'),
-	(18, 3, 'Normal', 23, 60.00, 'A#', 'W@', 'Emitido');
-
--- Dumping structure for view aerocontrol.datos_pasajeros
 DROP VIEW IF EXISTS `datos_pasajeros`;
--- Creating temporary table to overcome VIEW dependency errors
 CREATE TABLE `datos_pasajeros` (
 	`nombre` VARCHAR(1) NULL COLLATE 'utf8mb4_general_ci',
 	`apellido` VARCHAR(1) NULL COLLATE 'utf8mb4_general_ci',
 	`correo` VARCHAR(1) NULL COLLATE 'utf8mb4_general_ci'
 ) ENGINE=MyISAM;
 
--- Dumping structure for table aerocontrol.equipaje
-DROP TABLE IF EXISTS `equipaje`;
-CREATE TABLE IF NOT EXISTS `equipaje` (
-  `id_equipaje` int(11) NOT NULL AUTO_INCREMENT,
-  `id_pasajero` int(11) DEFAULT NULL,
-  `peso` decimal(10,2) DEFAULT NULL,
-  `estado` varchar(50) DEFAULT NULL,
-  PRIMARY KEY (`id_equipaje`),
-  KEY `id_pasajero` (`id_pasajero`),
-  CONSTRAINT `equipaje_ibfk_1` FOREIGN KEY (`id_pasajero`) REFERENCES `pasajero` (`id_pasajero`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table aerocontrol.equipaje: ~3 rows (approximately)
-REPLACE INTO `equipaje` (`id_equipaje`, `id_pasajero`, `peso`, `estado`) VALUES
-	(9, 2, 41.00, 'Entregado'),
-	(10, 3, 123.00, 'Para recoger');
-
-
--- Dumping structure for table aerocontrol.pasajero
+/*Tabla Pasajero*/
 DROP TABLE IF EXISTS `pasajero`;
 CREATE TABLE IF NOT EXISTS `pasajero` (
   `id_pasajero` int(11) NOT NULL AUTO_INCREMENT,
@@ -137,15 +68,28 @@ CREATE TABLE IF NOT EXISTS `pasajero` (
   PRIMARY KEY (`id_pasajero`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table aerocontrol.pasajero: ~3 rows (approximately)
 REPLACE INTO `pasajero` (`id_pasajero`, `nombre`, `apellido`, `edad`, `nacionalidad`, `correo`, `telefono`) VALUES
 	(1, 'A', 'A', 32, 'aa', '@gmail.com', 'afasd'),
 	(2, '2', '343', 232, 'Mexicana', '@gmail.com', 'qqq'),
 	(3, 'tres', 'gAAS', 35, 'Austriaca', '@gmail.com', '12412');
 
--- Dumping structure for view aerocontrol.pasajero_con_equipaje
+/*Tabla Equipaje*/
+DROP TABLE IF EXISTS `equipaje`;
+CREATE TABLE IF NOT EXISTS `equipaje` (
+  `id_equipaje` int(11) NOT NULL AUTO_INCREMENT,
+  `id_pasajero` int(11) DEFAULT NULL,
+  `peso` decimal(10,2) DEFAULT NULL,
+  `estado` varchar(50) DEFAULT NULL,
+  PRIMARY KEY (`id_equipaje`),
+  KEY `id_pasajero` (`id_pasajero`),
+  CONSTRAINT `equipaje_ibfk_1` FOREIGN KEY (`id_pasajero`) REFERENCES `pasajero` (`id_pasajero`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+REPLACE INTO `equipaje` (`id_equipaje`, `id_pasajero`, `peso`, `estado`) VALUES
+	(9, 2, 41.00, 'Entregado'),
+	(10, 3, 123.00, 'Para recoger');
+
 DROP VIEW IF EXISTS `pasajero_con_equipaje`;
--- Creating temporary table to overcome VIEW dependency errors
 CREATE TABLE `pasajero_con_equipaje` (
 	`id_pasajero` INT(11) NOT NULL,
 	`nombre` VARCHAR(1) NULL COLLATE 'utf8mb4_general_ci',
@@ -153,7 +97,7 @@ CREATE TABLE `pasajero_con_equipaje` (
 	`total_equipaje` BIGINT(21) NOT NULL
 ) ENGINE=MyISAM;
 
--- Dumping structure for table aerocontrol.usuarios
+/*Tabla Usuarios*/
 DROP TABLE IF EXISTS `usuarios`;
 CREATE TABLE IF NOT EXISTS `usuarios` (
   `id_usuario` int(11) NOT NULL AUTO_INCREMENT,
@@ -165,13 +109,12 @@ CREATE TABLE IF NOT EXISTS `usuarios` (
   UNIQUE KEY `usuario` (`usuario`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table aerocontrol.usuarios: ~3 rows (approximately)
 REPLACE INTO `usuarios` (`id_usuario`, `nombre`, `usuario`, `password`, `rol`) VALUES
 	(1, 'Admin', 'admin', 'admin123', 'Administrador'),
-	(2, 'Operativo', 'operativo', 'operativo123', 'PersonalOperativo'),
+	(2, 'Usuario General', 'usuario1', 'user123', 'UsuarioGeneral'),
 	(3, 'Analista', 'analista1', 'analyst123', 'Analista');
 
--- Dumping structure for table aerocontrol.vuelo
+/*Tabla Vuelo*/
 DROP TABLE IF EXISTS `vuelo`;
 CREATE TABLE IF NOT EXISTS `vuelo` (
   `id_vuelo` int(11) NOT NULL AUTO_INCREMENT,
@@ -191,7 +134,6 @@ CREATE TABLE IF NOT EXISTS `vuelo` (
   CONSTRAINT `vuelo_ibfk_3` FOREIGN KEY (`id_avion`) REFERENCES `avion` (`id_avion`)
 ) ENGINE=InnoDB AUTO_INCREMENT=24 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
--- Dumping data for table aerocontrol.vuelo: ~19 rows (approximately)
 REPLACE INTO `vuelo` (`id_vuelo`, `hora_salida`, `hora_llegada`, `id_aeropuerto_origen`, `id_aeropuerto_destino`, `id_avion`, `estado`) VALUES
 	(1, '2025-11-14 22:08:00', '2025-11-28 22:06:00', 2, 1, 1, 'Cancelado'),
 	(2, '2025-11-28 22:07:00', '2025-11-29 22:07:00', 2, 1, 1, 'Aterrizado'),
@@ -213,9 +155,36 @@ REPLACE INTO `vuelo` (`id_vuelo`, `hora_salida`, `hora_llegada`, `id_aeropuerto_
 	(22, '2025-12-31 19:22:00', '2026-01-01 19:22:00', 2, 1, 1, 'Aterrizado'),
 	(23, '2025-11-29 19:42:00', '2025-11-30 19:42:00', 1, 2, 5, 'Aterrizado');
 
--- Dumping structure for view aerocontrol.vuelos_a_abordar
+/*Tabla Boleto*/
+DROP TABLE IF EXISTS `boleto`;
+CREATE TABLE IF NOT EXISTS `boleto` (
+  `id_boleto` int(11) NOT NULL AUTO_INCREMENT,
+  `id_pasajero` int(11) DEFAULT NULL,
+  `tipoPasajero` varchar(30) NOT NULL,
+  `id_vuelo` int(11) DEFAULT NULL,
+  `precio` decimal(10,2) DEFAULT NULL,
+  `terminal` varchar(50) DEFAULT NULL,
+  `asiento` varchar(10) DEFAULT NULL,
+  `estado` varchar(20) DEFAULT 'No emitido',
+  PRIMARY KEY (`id_boleto`),
+  KEY `id_pasajero` (`id_pasajero`),
+  KEY `id_vuelo` (`id_vuelo`),
+  CONSTRAINT `boleto_ibfk_1` FOREIGN KEY (`id_pasajero`) REFERENCES `pasajero` (`id_pasajero`),
+  CONSTRAINT `boleto_ibfk_2` FOREIGN KEY (`id_vuelo`) REFERENCES `vuelo` (`id_vuelo`)
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+REPLACE INTO `boleto` (`id_boleto`, `id_pasajero`, `tipoPasajero`, `id_vuelo`, `precio`, `terminal`, `asiento`, `estado`) VALUES
+	(7, 1, 'Normal', 18, 12312.00, 'aa', '11', 'Emitido'),
+	(8, 1, 'Normal', 18, 3.00, '12', '11', 'Emitido'),
+	(9, 1, 'Normal', 18, 500.00, 'aa', '1232', 'Invalido'),
+	(12, 2, 'Mayor de Edad', 20, 390.00, 'asd', '123', 'Invalido'),
+	(13, 1, 'Normal', 19, 134.00, '11', '11', 'Invalido'),
+	(15, 1, 'Normal', 20, 123.00, '123', '123', 'Emitido'),
+	(16, 1, 'Normal', 21, 1.00, '12', '12', 'Emitido'),
+	(17, 2, 'Mayor de Edad', 22, 6.50, 'A@', 'A$', 'Emitido'),
+	(18, 3, 'Normal', 23, 60.00, 'A#', 'W@', 'Emitido');
+
 DROP VIEW IF EXISTS `vuelos_a_abordar`;
--- Creating temporary table to overcome VIEW dependency errors
 CREATE TABLE `vuelos_a_abordar` (
 	`hora_salida` DATETIME NULL,
 	`id_avion` INT(11) NULL,
@@ -223,57 +192,7 @@ CREATE TABLE `vuelos_a_abordar` (
 	`estado` VARCHAR(1) NULL COLLATE 'utf8mb4_general_ci'
 ) ENGINE=MyISAM;
 
--- Dumping structure for trigger aerocontrol.tr_verificar_peso_maximo_equipaje
-DROP TRIGGER IF EXISTS `tr_verificar_peso_maximo_equipaje`;
-SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
-DELIMITER //
-CREATE TRIGGER tr_verificar_peso_maximo_equipaje
-BEFORE INSERT ON EQUIPAJE
-FOR EACH ROW
-BEGIN
-    DECLARE v_carga_actual DECIMAL(10, 2);
-    DECLARE v_carga_maxima DECIMAL(10, 2);
-    DECLARE v_id_avion INT;
-    DECLARE v_id_vuelo INT;
-    DECLARE msg_error VARCHAR(255);
-
-    -- 1. Obtener el ID del vuelo más reciente/activo del pasajero
-    SELECT id_vuelo INTO v_id_vuelo
-    FROM BOLETO
-    WHERE id_pasajero = NEW.id_pasajero
-    ORDER BY id_vuelo DESC
-    LIMIT 1;
-
-    -- Si el pasajero no tiene vuelo (manejo de error básico)
-    IF v_id_vuelo IS NULL THEN
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'ERROR: El pasajero no tiene un boleto activo para registrar equipaje.';
-    END IF;
-
-    -- 2. Obtener el ID del avión asociado y la carga máxima
-    SELECT A.id_avion, A.PesoCargaMaxima, A.CargaActual
-    INTO v_id_avion, v_carga_maxima, v_carga_actual
-    FROM AVION AS A
-    INNER JOIN VUELO AS V ON A.id_avion = V.id_avion
-    WHERE V.id_vuelo = v_id_vuelo;
-
-    -- 3. Verificar si el nuevo equipaje supera la capacidad
-    IF (v_carga_actual + NEW.peso) > v_carga_maxima THEN
-        
-        SET msg_error = CONCAT('ERROR DE CAPACIDAD: Lo sentimos, no se admite más equipaje. ', 
-                               'El peso total excedería la carga máxima de ', v_carga_maxima, ' Kg del avión.');
-        
-        -- Generar un error y abortar la operación INSERT.
-        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = msg_error;
-    END IF;
-    
-    -- Nota: Si la inserción es exitosa, el estado inicial del equipaje se puede establecer aquí si no lo haces en la aplicación:
-    -- SET NEW.estado = 'Registrado';
-
-END//
-DELIMITER ;
-SET SQL_MODE=@OLDTMP_SQL_MODE;
-
--- Dumping structure for trigger aerocontrol.actualizar_carga_avion_despues_emitir_boleto
+/*-------------------------------------------------------DISPARADORES----------------------------------------------*/
 DROP TRIGGER IF EXISTS `actualizar_carga_avion_despues_emitir_boleto`;
 SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
 DELIMITER //
@@ -317,7 +236,6 @@ END//
 DELIMITER ;
 SET SQL_MODE=@OLDTMP_SQL_MODE;
 
--- Dumping structure for trigger aerocontrol.actualizar_estado_avion_after_update
 DROP TRIGGER IF EXISTS `actualizar_estado_avion_after_update`;
 SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
 DELIMITER //
@@ -361,7 +279,6 @@ END//
 DELIMITER ;
 SET SQL_MODE=@OLDTMP_SQL_MODE;
 
--- Dumping structure for trigger aerocontrol.actualizar_hora_llegada_avion
 DROP TRIGGER IF EXISTS `actualizar_hora_llegada_avion`;
 SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
 DELIMITER //
@@ -373,7 +290,7 @@ END//
 DELIMITER ;
 SET SQL_MODE=@OLDTMP_SQL_MODE;
 
--- Dumping structure for trigger aerocontrol.check_avion_disponibilidad_before_update
+
 DROP TRIGGER IF EXISTS `check_avion_disponibilidad_before_update`;
 SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
 DELIMITER //
@@ -399,7 +316,7 @@ END//
 DELIMITER ;
 SET SQL_MODE=@OLDTMP_SQL_MODE;
 
--- Dumping structure for trigger aerocontrol.control_flujo_avion_vuelo
+
 DROP TRIGGER IF EXISTS `control_flujo_avion_vuelo`;
 SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
 DELIMITER //
@@ -443,7 +360,7 @@ END//
 DELIMITER ;
 SET SQL_MODE=@OLDTMP_SQL_MODE;
 
--- Dumping structure for trigger aerocontrol.tr_cancelar_vuelo_impacto
+
 DROP TRIGGER IF EXISTS `tr_cancelar_vuelo_impacto`;
 SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
 DELIMITER //
@@ -481,7 +398,7 @@ END//
 DELIMITER ;
 SET SQL_MODE=@OLDTMP_SQL_MODE;
 
--- Dumping structure for trigger aerocontrol.tr_check_boleto_duplicado
+
 DROP TRIGGER IF EXISTS `tr_check_boleto_duplicado`;
 SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
 DELIMITER //
@@ -511,7 +428,7 @@ END//
 DELIMITER ;
 SET SQL_MODE=@OLDTMP_SQL_MODE;
 
--- Dumping structure for trigger aerocontrol.tr_check_capacidad_vuelo
+
 DROP TRIGGER IF EXISTS `tr_check_capacidad_vuelo`;
 SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
 DELIMITER //
@@ -551,7 +468,7 @@ END//
 DELIMITER ;
 SET SQL_MODE=@OLDTMP_SQL_MODE;
 
--- Dumping structure for trigger aerocontrol.tr_prohibir_equipaje_vuelo_en_curso
+
 DROP TRIGGER IF EXISTS `tr_prohibir_equipaje_vuelo_en_curso`;
 SET @OLDTMP_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_ZERO_IN_DATE,NO_ZERO_DATE,NO_ENGINE_SUBSTITUTION';
 DELIMITER //
@@ -599,26 +516,37 @@ END//
 DELIMITER ;
 SET SQL_MODE=@OLDTMP_SQL_MODE;
 
--- Removing temporary table and create final VIEW structure
+/*-------------------------------------------------------VISTAS----------------------------------------------*/
 DROP TABLE IF EXISTS `datos_pasajeros`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `datos_pasajeros` AS SELECT nombre, apellido, correo 
-FROM pasajero 
-;
+CREATE VIEW datos_pasajeros AS
+SELECT nombre, apellido, correo
+FROM pasajero;
 
--- Removing temporary table and create final VIEW structure
+
 DROP TABLE IF EXISTS `pasajero_con_equipaje`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `pasajero_con_equipaje` AS SELECT p.id_pasajero, p.nombre, p.apellido, COUNT(e.id_equipaje) AS total_equipaje
+CREATE VIEW pasajero_con_equipaje AS
+SELECT 
+    p.id_pasajero,
+    p.nombre,
+    p.apellido,
+    COUNT(e.id_equipaje) AS total_equipaje
 FROM pasajero p
 JOIN equipaje e ON p.id_pasajero = e.id_pasajero
-GROUP BY p.id_pasajero, p.nombre 
-;
+GROUP BY p.id_pasajero, p.nombre, p.apellido;
 
--- Removing temporary table and create final VIEW structure
+
 DROP TABLE IF EXISTS `vuelos_a_abordar`;
-CREATE ALGORITHM=UNDEFINED SQL SECURITY DEFINER VIEW `vuelos_a_abordar` AS SELECT hora_salida,vuelo.id_avion,aeropuerto.nombre,vuelo.estado
-FROM vuelo INNER JOIN aeropuerto ON vuelo.id_aeropuerto_origen = aeropuerto.id_aeropuerto;
+CREATE VIEW vuelos_a_abordar AS
+SELECT 
+    v.hora_salida,
+    v.id_avion,
+    a.nombre AS nombre_aeropuerto,
+    v.estado
+FROM vuelo v
+INNER JOIN aeropuerto a ON v.id_aeropuerto_origen = a.id_aeropuerto;
 
--- Dumping structure for function aerocontrol.obtenerTipoPasajero
+
+/*-------------------------------------------------------FUNCIONES DEFINIDAS----------------------------------------------*/
 -- 1. FUNCIÓN PARA OBTENER EL TIPO DE PASAJERO
 DELIMITER //
 DROP FUNCTION IF EXISTS obtenerTipoPasajero;
@@ -649,12 +577,12 @@ BEGIN
 END//
 DELIMITER ;
 
--- Dumping structure for function aerocontrol.obtener_descuento_boleto
+
 -- 2. FUNCIÓN PARA OBTENER EL PRECIO CON DESCUENTO
 DELIMITER //
 DROP FUNCTION IF EXISTS obtener_descuento_boleto;
 CREATE FUNCTION obtener_descuento_boleto(
-    idBoleto INT,
+    idBoleto INT, 
     idVuelo INT
 ) 
 RETURNS DECIMAL(10, 2) -- Definir la precisión para DECIMAL
@@ -687,8 +615,3 @@ BEGIN
     RETURN nuevoPrecio;
 END//
 DELIMITER ;
-/*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
-/*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
-/*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40111 SET SQL_NOTES=IFNULL(@OLD_SQL_NOTES, 1) */;
