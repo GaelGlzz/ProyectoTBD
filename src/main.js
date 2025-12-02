@@ -218,13 +218,26 @@ ipcMain.handle('registrarPasajero', async (event, data) => {
   });
 });
 
+//Procedimiento Almacenado para registrar vuelo con validaciones
 ipcMain.handle('registrarVuelo', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    db.query('INSERT INTO vuelo SET ?', data, (err, res) => {
-      if (err) reject(err);
-      else resolve({ id: res.insertId, message: 'Vuelo registrado' });
+    return new Promise((resolve, reject) => {
+        const sql = 'CALL registrarVuelo(?, ?, ?, ?, ?, ?)';
+        const params = [
+            data.id_avion, 
+            data.id_aeropuerto_origen, 
+            data.id_aeropuerto_destino, 
+            data.hora_salida, 
+            data.hora_llegada, 
+            data.precio
+        ];
+        db.query(sql, params, (err, res) => {
+            if (err) {
+                console.error("Error en DB al registrar vuelo:", err);
+                return reject(err);
+            }
+            resolve({ message: 'Vuelo registrado y validado por la base de datos.' });
+        });
     });
-  });
 });
 
 ipcMain.handle('modificarVuelo', async (event, data) => {
@@ -272,13 +285,23 @@ ipcMain.handle('mantenimientoAvion', async (event, data) => {
   });
 });
 
+//Procedimiento Almacenado para registrar equipaje con validaciones
 ipcMain.handle('registrarEquipaje', async (event, data) => {
-  return new Promise((resolve, reject) => {
-    db.query('INSERT INTO equipaje SET ?', data, (err, res) => {
-      if (err) reject(err);
-      else resolve({ id: res.insertId, message: 'Equipaje registrado' });
+    return new Promise((resolve, reject) => {
+        const sql = 'CALL registrarEquipaje(?, ?, ?)';
+        const params = [
+            data.id_pasajero, 
+            data.peso,
+            data.peso
+        ];
+        db.query(sql, params, (err, res) => {
+            if (err) {
+                console.error("Error en DB al registrar equipaje:", err);
+                return reject(err);
+            }
+            resolve({ message: 'Equipaje registrado exitosamente.' });
+        });
     });
-  });
 });
 
 ipcMain.handle('eliminarEquipaje', async (event, data) => {
