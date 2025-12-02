@@ -243,7 +243,7 @@ async function renderPage(page) {
       <td>${a.modelo}</td>
       <td>${a.aerolinea}</td>
       <td>${a.capacidad_pasajeros}</td>
-      <td>${a.pesoCargaMaximo}</td>
+      <td>${a.pesoCargaMaxima}</td>
       <td>${a.CargaActual}</td>
       <td>${a.estado}</td>
     </tr>
@@ -582,6 +582,7 @@ window.showModificarVuelo = async () => {
 };
 
 window.modificarVuelo = async () => {
+  try {
   const data = {
     hora_salida: document.getElementById('v-salida').value,
     hora_llegada: document.getElementById('v-llegada').value,
@@ -603,8 +604,20 @@ window.modificarVuelo = async () => {
     customAlert('La hora de llegada debe ser posterior a la hora de salida');
     return;
   }
+  
+  
 
   await window.api.modificarVuelo(data);
+  } catch (error) {
+    console.error('Error al emitir boleto:', error);
+    const errorMessage = error.message || 'Error desconocido al modificar el vuelo.';
+
+    if (errorMessage.includes('No se puede cambiar el vuelo a "Programado"')) {
+      customAlert(errorMessage);
+    } else {
+      customAlert(`Error de registro: ${errorMessage}`);
+    }
+  }
   closeModal();
   renderPage('vuelos');
 };
@@ -832,10 +845,10 @@ window.submitAvion = async () => {
     modelo: document.getElementById('a-modelo').value.trim(),
     aerolinea: document.getElementById('a-aerolinea').value.trim(),
     capacidad_pasajeros: document.getElementById('a-capacidad').value,
-    pesoCargaMaximo: document.getElementById('a-capacidadCargaMaxima').value,
+    pesoCargaMaxima: document.getElementById('a-capacidadCargaMaxima').value,
   };
 
-  if (!data.modelo || !data.aerolinea || !data.capacidad_pasajeros || !data.pesoCargaMaximo) {
+  if (!data.modelo || !data.aerolinea || !data.capacidad_pasajeros || !data.pesoCargaMaxima) {
     customAlert('Por favor, complete todos los campos');
     return;
   }
@@ -845,7 +858,7 @@ window.submitAvion = async () => {
     return;
   }
 
-  if (parseInt(data.pesoCargaMaximo) <= 0) {
+  if (parseInt(data.pesoCargaMaxima) <= 0) {
     customAlert('El peso debe ser mayor a 0');
     return;
   }
@@ -959,8 +972,8 @@ window.submitEquipaje = async () => {
     };
 
     // validaciones del cliente
-    if (!data.id_pasajero || isNaN(data.peso) || data.peso <= 0) {
-        customAlert('Asegúrese de seleccionar un pasajero e ingresar un peso válido (> 0).');
+    if (!data.id_pasajero || isNaN(data.peso) || data.peso <= 0 || data.peso > 30) {
+        customAlert('Asegúrese de seleccionar un pasajero e ingresar un peso válido (mayor a 0 y menor a 30).');
         return;
     }
 
@@ -974,7 +987,7 @@ window.submitEquipaje = async () => {
         const rawMessage = error.message;
         let displayMessage = 'Error desconocido al registrar el equipaje.';
 
-        if (rawMessage && rawMessage.includes('El pasajero no tiene un boleto activo')) {
+        if (rawMessage && rawMessage.includes('El Pasajero ID')) {
             displayMessage = 'El pasajero debe tener un boleto activo (No Invalido/Cancelado).';
         } else if (rawMessage && rawMessage.includes('No se puede registrar equipaje: el vuelo ya está en curso')) {
             displayMessage = 'ERROR: El vuelo ya ha iniciado. No se admite más equipaje.';
